@@ -1,8 +1,8 @@
 # NECESIDAD
-La UNSC necesita un sistema centralizado que le permita manejar sus divisiones,
-ramas, soldados y armamento. Ya sea para eliminar, agregar, modificar o consultar 
-información del sistema. El sistema tiene que gestionar sus soldados generales y soldados 
-aptos para divisiones especiales ( Estos ultimos vienen desde soldados ).
+La UNSC necesita un sistema centralizado que le permita manejar sus ramas, divisiones,
+divisiones especiales y reclutas. Ya sea para eliminar, agregar, modificar o consultar
+información del sistema. El sistema tiene que gestionar los reclutas y su asignación
+a una división especial.
 
 ---
 
@@ -48,7 +48,7 @@ en la necesidad.
 
 8. **LT-08 Validación de datos mínima.** No se usa Bean Validation; los valores se convierten manualmente y un dato inválido se transforma en `0`, `null` o se descarta, sin mensajes de error de campo.
 
-11. **LT-11 Borrado físico sin reglas de cascada definidas.** Eliminar una rama, división o soldado con registros asociados puede fallar por restricciones de clave foránea o dejar información inconsistente.
+11. **LT-11 Borrado físico sin reglas de cascada definidas.** Eliminar una rama, división, división especial o recluta con registros asociados puede fallar por restricciones de clave foránea o dejar información inconsistente.
 
 13. **LT-13 Alcance funcional acotado.** No se contemplan reportes, exportación/importación de archivos, carga de imágenes, notificaciones por correo ni historial de cambios.
 
@@ -64,9 +64,15 @@ Todas las entidades se ubican en el paquete `com.example.model`, se anotan con
 `@Entity`, `@Table`, `@Id` y `@GeneratedValue(strategy = GenerationType.IDENTITY)`,
 y cuentan con constructor vacío, constructores con y sin ID, y sus getters/setters.
 
-## 3.1. Entidad `Rama`
+El modelo conserva cinco entidades (`RAMAS`, `DIVISIONES`, `DIVISIONES_ESPECIALES`, `RECLUTAS` Y `APTOS_DIVISION_ESPECIAL`). 
+Las tablas se nombran en plural
+mediante `@Table`: `ramas`, `divisiones`, `divisiones_especiales`, `reclutas` y
+`aptos_division_especial`.
 
-Representa cada rama o componente de la UNSC a la que pertenecen las divisiones.
+## 3.1. Entidad `RAMAS`
+
+Representa cada rama o componente de la UNSC a la que pertenecen las divisiones y los
+reclutas.
 
 | Campo | Tipo Java | Descripción |
 | :--- | :--- | :--- |
@@ -75,9 +81,10 @@ Representa cada rama o componente de la UNSC a la que pertenecen las divisiones.
 | `descripcion` | `String` | Descripción general de la rama. |
 | `estado` | `String` | `Activa` o `Inactiva`. |
 
-Relación: una `Rama` tiene muchas `Division`.
+Relaciones: una `Rama` tiene muchas `Division`, muchas `DivisionEspecial` y muchos
+`Recluta`. Cada `Division`, `DivisionEspecial` y `Recluta` pertenece a una sola `Rama`.
 
-## 3.2. Entidad `Division`
+## 3.2. Entidad `DIVISIONES`
 
 Unidad organizativa de la UNSC, dependiente de una rama.
 
@@ -88,90 +95,80 @@ Unidad organizativa de la UNSC, dependiente de una rama.
 | `tipo` | `String` | Tipo de división (Infantería, Blindada, Aérea, Reconocimiento, Especial). |
 | `descripcion` | `String` | Descripción o propósito de la división. |
 | `estado` | `String` | `Activa`, `En formación` o `Disuelta`. |
-| `rama` | `Rama` | Rama a la que pertenece (`@ManyToOne`). |
+| `rama` | `Rama` | Rama a la que pertenece (`@ManyToOne`, obligatorio). |
 
-Relaciones: muchas `Division` pertenecen a una `Rama`; una `Division` agrupa muchos
-`Soldado` y puede tener asignados varios `Armamento`.
+Relación: muchas `Division` pertenecen a una `Rama`.
 
-## 3.3. Entidad `Soldado`
+## 3.3. Entidad `DIVISIONES_ESPECIALES`
 
-Soldado general de la UNSC. Es la entidad base de los soldados especiales.
+División de la UNSC destinada a reclutas con aptitud especial.
 
 | Campo | Tipo Java | Descripción |
 | :--- | :--- | :--- |
 | `id` | `Long` | Clave primaria autoincremental. |
-| `codigo` | `String` | Identificación única del soldado (por ejemplo: UNSC-00125). |
-| `nombre` | `String` | Nombre del soldado. |
-| `apellido` | `String` | Apellido del soldado. |
+| `nombre` | `String` | Nombre de la división especial (por ejemplo: ODST, Spartans). |
+| `descripcion` | `String` | Descripción o propósito de la división especial. |
+| `estado` | `String` | `Activa`, `En formación` o `Disuelta`. |
+| `rama` | `Rama` | Rama a la que pertenece (`@ManyToOne`, obligatorio). |
+
+Relaciones: muchas `DivisionEspecial` pertenecen a una `Rama`; una `DivisionEspecial`
+puede tener como máximo un registro de asignación `ReclutaDivisionEspecial`
+(`@OneToOne(mappedBy = "divisionEspecial")`).
+
+## 3.4. Entidad `RECLUTAS`
+
+Integrante de la UNSC que pertenece a una rama y puede ser asignado a una división
+especial.
+
+| Campo | Tipo Java | Descripción |
+| :--- | :--- | :--- |
+| `id` | `Long` | Clave primaria autoincremental. |
+| `codigo` | `String` | Identificación única del recluta (por ejemplo: UNSC-00125). |
+| `nombre` | `String` | Nombre del recluta. |
+| `apellido` | `String` | Apellido del recluta. |
 | `rango` | `String` | Rango militar (Recluta, Sargento, Teniente, Capitán, etc.). |
 | `estado` | `String` | `Activo`, `Inactivo` o `Baja`. |
 | `fechaIngreso` | `LocalDate` | Fecha de ingreso a la UNSC. |
-| `division` | `Division` | División asignada (`@ManyToOne`, opcional). Si es `null`, el soldado es general y no está asignado a una división. |
+| `rama` | `Rama` | Rama a la que pertenece (`@ManyToOne`, obligatorio). |
 
-Relación: muchos `Soldado` pertenecen a una `Division`.
+Relaciones: muchos `Recluta` pertenecen a una `Rama`; un `Recluta` puede tener como
+máximo un registro de asignación `ReclutaDivisionEspecial`
+(`@OneToOne(mappedBy = "recluta")`, opcional).
 
-## 3.4. Entidad `SoldadoEspecial`
+## 3.5. Entidad de relación `APTOS_DIVISION_ESPECIAL`
 
-Soldado apto para divisiones especiales. Hereda de `Soldado` (estrategia `JOINED`),
-de modo que todo soldado especial conserva los datos del soldado del que proviene y
-existe como un único registro en el sistema.
+Registro que vincula un `Recluta` con una `DivisionEspecial` y guarda los datos de su
+aptitud. Materializa las relaciones `recluta 1:1 recluta_division_especial` y
+`recluta_division_especial 1:1 division_especial`.
 
 | Campo | Tipo Java | Descripción |
 | :--- | :--- | :--- |
-| `id` | `Long` | Clave primaria y clave foránea hacia `Soldado`. |
+| `id` | `Long` | Clave primaria autoincremental. |
+| `recluta` | `Recluta` | Recluta asignado (`@OneToOne`, obligatorio, `unique`). |
+| `divisionEspecial` | `DivisionEspecial` | División especial de destino (`@OneToOne`, obligatorio, `unique`). |
 | `especialidad` | `String` | Especialidad (por ejemplo: ODST, Spartans, Fuerzas Especiales). |
 | `fechaAptitud` | `LocalDate` | Fecha en la que se declaró apto. |
 | `estadoAptitud` | `String` | `Apto`, `En evaluación` o `No apto`. |
-| `divisionEspecial` | `Division` | División especial a la que fue destinado (`@ManyToOne`). |
 
-Regla estructural: un `SoldadoEspecial` solo puede registrarse a partir de un `Soldado`
-previamente existente; no se crea desde cero.
+Reglas estructurales:
 
-## 3.5. Entidad `Armamento`
+- Un `Recluta` solo puede tener un registro de asignación y el registro no puede existir
+  sin `Recluta`.
+- Una `DivisionEspecial` solo puede aparecer en un registro de asignación.
+- El registro de asignación se consulta, modifica o elimina sin eliminar al `Recluta`.
 
-Equipo y armamento de la UNSC disponible para las divisiones.
-
-| Campo | Tipo Java | Descripción |
-| :--- | :--- | :--- |
-| `id` | `Long` | Clave primaria autoincremental. |
-| `codigo` | `String` | Identificación única del armamento. |
-| `nombre` | `String` | Nombre del armamento (por ejemplo: MA5B Assault Rifle). |
-| `categoria` | `String` | Categoría (Fusil, Pistola, Explosivo, Artillería, Vehículo). |
-| `calibre` | `String` | Calibre o especificación técnica principal. |
-| `descripcion` | `String` | Especificaciones y observaciones. |
-| `estado` | `String` | `Operativo`, `En mantenimiento` o `Fuera de servicio`. |
-| `cantidadDisponible` | `Integer` | Unidades disponibles en inventario. |
-| `division` | `Division` | División a la que está asignado (`@ManyToOne`, opcional). |
-
-Relación: muchos `Armamento` pueden estar asignados a una `Division`.
-
-## 3.6. Entidad de apoyo opcional `Usuario`
-
-No forma parte del alcance mínimo de la necesidad, pero la arquitectura base ya la
-contempla y permitiría identificar al personal que opera el sistema.
-
-| Campo | Tipo Java | Descripción |
-| :--- | :--- | :--- |
-| `id` | `Long` | Clave primaria autoincremental. |
-| `nombre` | `String` | Nombre del usuario. |
-| `apellido` | `String` | Apellido del usuario. |
-| `email` | `String` | Correo de contacto. |
-| `rol` | `String` | `Administrador` u `Operador`. |
-| `estado` | `String` | `Activo` o `Inactivo`. |
-| `fechaRegistro` | `LocalDateTime` | Fecha y hora de creación del usuario. |
-
-## 3.7. Resumen de relaciones
+## 3.6. Resumen de relaciones
 
 ```
 Rama (1) ──── (N) Division
-Division (1) ──── (N) Soldado
-Division (1) ──── (N) Armamento
-Soldado (1) ──── (1) SoldadoEspecial        [herencia JOINED]
-Division (1) ──── (N) SoldadoEspecial       [divisionEspecial]
+Rama (1) ──── (N) DivisionEspecial
+Rama (1) ──── (N) Recluta
+Recluta (1) ──── (1) ReclutaDivisionEspecial          [opcional del lado Recluta]
+ReclutaDivisionEspecial (1) ──── (1) DivisionEspecial
 ```
 
-Tablas generadas por Hibernate: `ramas`, `divisiones`, `soldados`,
-`soldados_especiales`, `armamentos` y, si se implementa, `usuarios`.
+Tablas generadas por Hibernate: `rama`, `division`, `division_especial`, `recluta` y
+`recluta_division_especial`.
 
 ---
 
@@ -185,28 +182,27 @@ registrando nombre, descripción y estado, y permitiendo buscarlas por nombre.
 El sistema debe permitir crear, consultar, modificar y eliminar divisiones, asociarlas
 a una rama existente y buscarlas por nombre, tipo, estado o rama.
 
-## RF-03 Gestión de soldados generales
-El sistema debe permitir crear, consultar, modificar y eliminar soldados, registrar sus
-datos personales y militares, asignarlos o desasignarlos de una división, y buscarlos por
-código, nombre, apellido, rango, estado o división.
+## RF-03 Gestión de divisiones especiales
+El sistema debe permitir crear, consultar, modificar y eliminar divisiones especiales,
+asociarlas a una rama existente y buscarlas por nombre, estado o rama.
 
-## RF-04 Gestión de soldados aptos para divisiones especiales
-El sistema debe permitir seleccionar un soldado existente y registrar su aptitud para una
-división especial, indicando especialidad, fecha de aptitud, estado de aptitud y división
-especial de destino. El soldado especial debe poder consultarse, modificarse y retirarse
-de la lista de aptos sin eliminar al soldado original, y debe poder buscarse por
-especialidad, estado de aptitud o división especial.
+## RF-04 Gestión de reclutas
+El sistema debe permitir crear, consultar, modificar y eliminar reclutas, registrar sus
+datos personales y militares, asignarles una rama y buscarlos por código, nombre,
+apellido, rango, estado o rama.
 
-## RF-05 Gestión de armamento
-El sistema debe permitir crear, consultar, modificar y eliminar armamento, registrar su
-categoría, calibre, estado y cantidad disponible, asignarlo a una división y buscarlo por
-código, nombre, categoría, estado o división.
+## RF-05 Gestión de asignaciones a divisiones especiales
+El sistema debe permitir seleccionar un recluta existente y registrar su asignación a una
+división especial, indicando especialidad, fecha de aptitud y estado de aptitud. Cada
+recluta solo puede tener una asignación y cada división especial solo puede estar asociada
+a un registro. La asignación debe poder consultarse, modificarse o retirarse sin eliminar
+al recluta, y debe poder buscarse por especialidad, estado de aptitud o división especial.
 
 ## RF-06 Interfaz de usuario
 El sistema debe ofrecer una interfaz web implementada con Vaadin Flow, organizada en
-pestañas por módulo (Ramas, Divisiones, Soldados, Soldados Especiales y Armamento), con
-formularios de captura, grillas de consulta, selección de fila para cargar el formulario y
-botones de Crear, Consultar, Actualizar, Eliminar y Limpiar.
+pestañas por módulo (Ramas, Divisiones, Divisiones Especiales, Reclutas y Asignaciones a
+Divisiones Especiales), con formularios de captura, grillas de consulta, selección de fila
+para cargar el formulario y botones de Crear, Consultar, Actualizar, Eliminar y Limpiar.
 
 ## RF-07 Persistencia de datos
 Toda operación realizada en la interfaz debe almacenarse en la base de datos PostgreSQL
@@ -225,9 +221,9 @@ entidades.
 
 ## RF-10 Integridad y validación básica
 El sistema debe validar los campos obligatorios antes de guardar, impedir códigos
-duplicados en soldados y armamento, e impedir la eliminación de una rama con divisiones
-asociadas o de una división con soldados o armamento asignados, informando el motivo al
-usuario mediante notificaciones.
+duplicados en reclutas e impedir la eliminación de una rama con divisiones, divisiones
+especiales o reclutas asociados, de una división especial con una asignación o de un
+recluta con una asignación, informando el motivo al usuario mediante notificaciones.
 
 ## RF-11 Retroalimentación al usuario
 El sistema debe notificar el resultado de cada operación (éxito, registro no encontrado o
@@ -241,8 +237,9 @@ Los siguientes aspectos no se especifican en la necesidad y deben acordarse ante
 implementación:
 
 - Rangos militares válidos y jerarquía entre ellos.
-- Cupos máximos de soldados por división y requisitos para pertenecer a una división especial.
-- Tipos de división y de armamento admitidos.
-- Política de borrado (físico o lógico) y reasignación de soldados al eliminar una división.
-- Tratamiento de soldados dados de baja y de armamento fuera de servicio.
+- Cupos máximos de reclutas por rama y requisitos para pertenecer a una división especial.
+- Tipos de división y de división especial admitidos.
+- Política de borrado (físico o lógico) y reasignación de reclutas al eliminar una rama o
+  una división especial.
+- Tratamiento de reclutas dados de baja.
 - Necesidad real de autenticación, roles y permisos sobre el sistema.
