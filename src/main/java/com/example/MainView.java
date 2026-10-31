@@ -2,7 +2,7 @@ package com.example;
 
 import java.time.LocalDateTime;
 
-import com.example.model.Categoria;
+import com.example.model.Recluta;
 import com.example.model.Producto;
 import com.example.model.Proveedor;
 import com.example.model.Usuario;
@@ -36,7 +36,7 @@ public class MainView extends VerticalLayout {
         TabSheet tabs = new TabSheet();
         tabs.setWidthFull();
         tabs.add("Productos", crearSeccionProductos());
-        tabs.add("Categorías", crearSeccionCategorias());
+        tabs.add("Recluta", crearSeccionRecluta());
         tabs.add("Proveedores", crearSeccionProveedores());
         tabs.add("Usuarios", crearSeccionUsuarios());
 
@@ -139,9 +139,9 @@ public class MainView extends VerticalLayout {
     }
 
     // ==========================================
-    // 2. CATEGORÍAS
+    // 2. Reclutas
     // ==========================================
-    private Component crearSeccionCategorias() {
+    private Component crearSeccionRecluta() {
         VerticalLayout layout = new VerticalLayout();
         TextField idField = new TextField("ID");
         TextField nombreField = new TextField("Nombre");
@@ -149,16 +149,16 @@ public class MainView extends VerticalLayout {
 
         FormLayout form = new FormLayout(idField, nombreField, descripcionField);
 
-        Grid<Categoria> grid = new Grid<>(Categoria.class, false);
-        grid.addColumn(Categoria::getId).setHeader("ID").setAutoWidth(true);
-        grid.addColumn(Categoria::getNombre).setHeader("Nombre").setAutoWidth(true);
-        grid.addColumn(Categoria::getDescripcion).setHeader("Descripción").setAutoWidth(true);
+        Grid<Recluta> grid = new Grid<>(Recluta.class, false);
+        grid.addColumn(Recluta::getId).setHeader("ID").setAutoWidth(true);
+        grid.addColumn(Recluta::getNombre).setHeader("Nombre").setAutoWidth(true);
+        grid.addColumn(Recluta::getDescripcion).setHeader("Descripción").setAutoWidth(true);
 
-        Runnable refrescar = () -> grid.setItems(crudService.listarTodos(Categoria.class));
+        Runnable refrescar = () -> grid.setItems(crudService.listarTodos(Recluta.class));
         refrescar.run();
 
         grid.asSingleSelect().addValueChangeListener(e -> {
-            Categoria c = e.getValue();
+            Recluta c = e.getValue();
             if (c != null) {
                 idField.setValue(c.getId() != null ? c.getId().toString() : "");
                 nombreField.setValue(c.getNombre() != null ? c.getNombre() : "");
@@ -167,7 +167,7 @@ public class MainView extends VerticalLayout {
         });
 
         Button btnCrear = new Button("Crear", e -> {
-            Categoria c = new Categoria(nombreField.getValue(), descripcionField.getValue());
+            Recluta c = new Recluta(nombreField.getValue(), descripcionField.getValue());
             crudService.guardar(c);
             refrescar.run();
             idField.setValue(c.getId() != null ? c.getId().toString() : "");
@@ -176,7 +176,7 @@ public class MainView extends VerticalLayout {
         btnCrear.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
         Button btnConsultar = new Button("Consultar", e -> {
-            Categoria c = crudService.buscarPorId(Categoria.class, parseId(idField));
+            Recluta c = crudService.buscarPorId(Recluta.class, parseId(idField));
             if (c != null) {
                 grid.asSingleSelect().setValue(c);
                 Notification.show("Encontrada: " + c.getNombre());
@@ -186,7 +186,7 @@ public class MainView extends VerticalLayout {
         });
 
         Button btnActualizar = new Button("Actualizar", e -> {
-            Categoria c = crudService.buscarPorId(Categoria.class, parseId(idField));
+            Recluta c = crudService.buscarPorId(Recluta.class, parseId(idField));
             if (c != null) {
                 c.setNombre(nombreField.getValue());
                 c.setDescripcion(descripcionField.getValue());
@@ -199,7 +199,7 @@ public class MainView extends VerticalLayout {
         });
 
         Button btnEliminar = new Button("Eliminar", e -> {
-            crudService.eliminar(Categoria.class, parseId(idField));
+            crudService.eliminar(Recluta.class, parseId(idField));
             refrescar.run();
             limpiar(idField, nombreField, descripcionField);
             Notification.show("Categoría eliminada");
