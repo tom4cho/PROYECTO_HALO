@@ -1,5 +1,6 @@
 package com.example.service;
 
+import java.io.Serializable;
 import java.util.List;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -29,7 +30,7 @@ public class CrudService {
      * Consultar una entidad por su ID
      */
     @Transactional(readOnly = true)
-    public <T> T buscarPorId(Class<T> clase, Long id) {
+    public <T> T buscarPorId(Class<T> clase, Serializable id) {
         return entityManager.find(clase, id);
     }
 
@@ -52,7 +53,7 @@ public class CrudService {
     /**
      * Eliminar una entidad por su ID
      */
-    public <T> boolean eliminar(Class<T> clase, Long id) {
+    public <T> boolean eliminar(Class<T> clase, Serializable id) {
         T entidad = entityManager.find(clase, id);
         if (entidad != null) {
             entityManager.remove(entidad);
