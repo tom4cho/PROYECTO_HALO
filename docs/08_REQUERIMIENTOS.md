@@ -64,91 +64,83 @@ Todas las entidades se ubican en el paquete `com.example.model`, se anotan con
 `@Entity`, `@Table`, `@Id` y `@GeneratedValue(strategy = GenerationType.IDENTITY)`,
 y cuentan con constructor vacío, constructores con y sin ID, y sus getters/setters.
 
-El modelo conserva cinco entidades (`RAMAS`, `DIVISIONES`, `DIVISIONES_ESPECIALES`, `RECLUTAS` Y `APTOS_DIVISION_ESPECIAL`). 
+El modelo conserva cinco entidades (`Rama`, `Division`, `DivisionEspecial`, `Recluta` Y `AptoDivisionEspecial`). 
 Las tablas se nombran en plural
-mediante `@Table`: `ramas`, `divisiones`, `divisiones_especiales`, `reclutas` y
-`aptos_division_especial`.
+mediante `@Table`: `Rama`, `Division`, `DivisionEspecial`, `Recluta` y
+`AptoDivisionEspecial`.
 
-## 3.1. Entidad `RAMAS`
+## 3.1. Entidad `Rama`
 
 Representa cada rama o componente de la UNSC a la que pertenecen las divisiones y los
 reclutas.
 
 | Campo | Tipo Java | Descripción |
 | :--- | :--- | :--- |
-| `id` | `Long` | Clave primaria autoincremental. |
+| `idRama` | `Integer` | Clave primaria autoincremental. |
 | `nombre` | `String` | Nombre de la rama (por ejemplo: Infantería, Armada, Fuerza Aérea). |
 | `descripcion` | `String` | Descripción general de la rama. |
-| `estado` | `String` | `Activa` o `Inactiva`. |
 
-Relaciones: una `Rama` tiene muchas `Division`, muchas `DivisionEspecial` y muchos
-`Recluta`. Cada `Division`, `DivisionEspecial` y `Recluta` pertenece a una sola `Rama`.
+Relaciones: una `Rama` tiene muchas `Division` y muchos
+`Recluta`. Cada `Division` y `Recluta` pertenece a una sola `RAMAS`.
 
-## 3.2. Entidad `DIVISIONES`
+## 3.2. Entidad `Division`
 
 Unidad organizativa de la UNSC, dependiente de una rama.
 
 | Campo | Tipo Java | Descripción |
 | :--- | :--- | :--- |
-| `id` | `Long` | Clave primaria autoincremental. |
+| `idDivision` | `Integer` | Clave primaria autoincremental. |
 | `nombre` | `String` | Nombre de la división (por ejemplo: 101.ª Aerotransportada). |
-| `tipo` | `String` | Tipo de división (Infantería, Blindada, Aérea, Reconocimiento, Especial). |
 | `descripcion` | `String` | Descripción o propósito de la división. |
-| `estado` | `String` | `Activa`, `En formación` o `Disuelta`. |
-| `rama` | `Rama` | Rama a la que pertenece (`@ManyToOne`, obligatorio). |
+| `idRama` | `Rama` | Rama a la que pertenece (`@ManyToOne`, obligatorio). |
 
 Relación: muchas `Division` pertenecen a una `Rama`.
 
-## 3.3. Entidad `DIVISIONES_ESPECIALES`
+## 3.3. Entidad `DivisionEspecial`
 
 División de la UNSC destinada a reclutas con aptitud especial.
 
 | Campo | Tipo Java | Descripción |
 | :--- | :--- | :--- |
-| `id` | `Long` | Clave primaria autoincremental. |
+| `idDivisionEspecial` | `Integer` | Clave primaria autoincremental. |
 | `nombre` | `String` | Nombre de la división especial (por ejemplo: ODST, Spartans). |
 | `descripcion` | `String` | Descripción o propósito de la división especial. |
-| `estado` | `String` | `Activa`, `En formación` o `Disuelta`. |
-| `rama` | `Rama` | Rama a la que pertenece (`@ManyToOne`, obligatorio). |
+| `idDivision` | `Division` | Division a la que pertenece (`@ManyToOne`, obligatorio). |
 
-Relaciones: muchas `DivisionEspecial` pertenecen a una `Rama`; una `DivisionEspecial`
-puede tener como máximo un registro de asignación `ReclutaDivisionEspecial`
-(`@OneToOne(mappedBy = "divisionEspecial")`).
+Relaciones: muchas `DivisionEspecial` pertenecen a una `Division`;
 
-## 3.4. Entidad `RECLUTAS`
+## 3.4. Entidad `Recluta`
 
 Integrante de la UNSC que pertenece a una rama y puede ser asignado a una división
 especial.
 
 | Campo | Tipo Java | Descripción |
 | :--- | :--- | :--- |
-| `id` | `Long` | Clave primaria autoincremental. |
-| `codigo` | `String` | Identificación única del recluta (por ejemplo: UNSC-00125). |
+| `idRecluta` | `Integer` | Clave primaria autoincremental. |
 | `nombre` | `String` | Nombre del recluta. |
 | `apellido` | `String` | Apellido del recluta. |
-| `rango` | `String` | Rango militar (Recluta, Sargento, Teniente, Capitán, etc.). |
-| `estado` | `String` | `Activo`, `Inactivo` o `Baja`. |
-| `fechaIngreso` | `LocalDate` | Fecha de ingreso a la UNSC. |
-| `rama` | `Rama` | Rama a la que pertenece (`@ManyToOne`, obligatorio). |
+| `altura` | `Integer` | Fecha de ingreso a la UNSC. |
+| `peso` | `BigDecimal` | Fecha de ingreso a la UNSC. |
+| `idRama` | `Rama` | Rama a la que pertenece (`@ManyToOne`, obligatorio). |
+| `idApto` | `AptoDivisionEspecial` | Solicitud a Division especial que tiene el soldado (`@OneToOne`, opcional). |
 
-Relaciones: muchos `Recluta` pertenecen a una `Rama`; un `Recluta` puede tener como
-máximo un registro de asignación `ReclutaDivisionEspecial`
-(`@OneToOne(mappedBy = "recluta")`, opcional).
+Relaciones: muchos `Recluta` pertenecen a una `Rama`. Un `AptoDivisionEspecial` pertenece a un `Recluta`;
 
-## 3.5. Entidad de relación `APTOS_DIVISION_ESPECIAL`
+## 3.5. Entidad `AptoDivisionEspecial`
 
 Registro que vincula un `Recluta` con una `DivisionEspecial` y guarda los datos de su
-aptitud. Materializa las relaciones `recluta 1:1 recluta_division_especial` y
-`recluta_division_especial 1:1 division_especial`.
+aptitud.
 
 | Campo | Tipo Java | Descripción |
 | :--- | :--- | :--- |
-| `id` | `Long` | Clave primaria autoincremental. |
-| `recluta` | `Recluta` | Recluta asignado (`@OneToOne`, obligatorio, `unique`). |
-| `divisionEspecial` | `DivisionEspecial` | División especial de destino (`@OneToOne`, obligatorio, `unique`). |
-| `especialidad` | `String` | Especialidad (por ejemplo: ODST, Spartans, Fuerzas Especiales). |
-| `fechaAptitud` | `LocalDate` | Fecha en la que se declaró apto. |
-| `estadoAptitud` | `String` | `Apto`, `En evaluación` o `No apto`. |
+| `idApto` | `Integer` | Clave primaria autoincremental. |
+| `idRecluta` | `Recluta` | Recluta asignado (`@OneToOne`, obligatorio, `unique`). |
+| `idDivisionEspecial` | `DivisionEspecial` | División especial de destino (`@ManyToOne`, obligatorio). |
+| `aptoServicio` | `Boolean` | True si paso la evaluación, False si no pasó la evaluación. |
+| `fechaEvaluacion` | `LocalDate` | Fecha en la que se realizó la evaluación. |
+| `puntaje` | `Integer` | Puntaje obtenido en la evaluación. |
+
+Relaciones: muchos `AptoDivisionEspecial` pertenecen a una `DivisionEspecial`. y un `Recluta` tiene un solo `AptoDivisionEspecial`.
 
 Reglas estructurales:
 
