@@ -62,10 +62,10 @@ Todas las entidades se ubican en el paquete `com.example.model`, se anotan con
 `@Entity`, `@Table`, `@Id` y `@GeneratedValue(strategy = GenerationType.IDENTITY)`,
 y cuentan con constructor vacío, constructores con y sin ID, y sus getters/setters.
 
-El modelo conserva cinco entidades (`Rama`, `Division`, `DivisionEspecial`, `Recluta` Y `AptoDivisionEspecial`). 
+El modelo conserva cinco entidades (`Rama`, `Division`, `DivisionEspecial`, `Recluta` y `AptoDivisionEspecial`).
 Las tablas se nombran en plural
-mediante `@Table`: `Rama`, `Division`, `DivisionEspecial`, `Recluta` y
-`AptoDivisionEspecial`.
+mediante `@Table`: `ramas`, `divisiones`, `divisiones_especiales`, `reclutas` y
+`aptos_division_especial`.
 
 ## 3.1. Entidad `Rama`
 
@@ -79,7 +79,7 @@ reclutas.
 | `descripcion` | `String` | Descripción general de la rama. |
 
 Relaciones: una `Rama` tiene muchas `Division` y muchos
-`Recluta`. Cada `Division` y `Recluta` pertenece a una sola `RAMAS`.
+`Recluta`. Cada `Division` y cada `Recluta` pertenece a una sola `Rama`.
 
 ## 3.2. Entidad `Division`
 
@@ -117,8 +117,8 @@ especial.
 | `idRecluta` | `Integer` | Clave primaria autoincremental. |
 | `nombre` | `String` | Nombre del recluta. |
 | `apellido` | `String` | Apellido del recluta. |
-| `altura` | `Integer` | Fecha de ingreso a la UNSC. |
-| `peso` | `BigDecimal` | Fecha de ingreso a la UNSC. |
+| `altura` | `Integer` | Altura del recluta. |
+| `peso` | `BigDecimal` | Peso del recluta. |
 | `idRama` | `Rama` | Rama a la que pertenece (`@ManyToOne`, obligatorio). |
 | `idApto` | `AptoDivisionEspecial` | Solicitud a Division especial que tiene el soldado (`@OneToOne`, opcional). |
 
@@ -138,27 +138,27 @@ aptitud.
 | `fechaEvaluacion` | `LocalDate` | Fecha en la que se realizó la evaluación. |
 | `puntaje` | `Integer` | Puntaje obtenido en la evaluación. |
 
-Relaciones: muchos `AptoDivisionEspecial` pertenecen a una `DivisionEspecial`. y un `Recluta` tiene un solo `AptoDivisionEspecial`.
+Relaciones: muchos `AptoDivisionEspecial` pertenecen a una `DivisionEspecial` y un `Recluta` tiene un solo `AptoDivisionEspecial`.
 
 Reglas estructurales:
 
 - Un `Recluta` solo puede tener un registro de asignación y el registro no puede existir
   sin `Recluta`.
-- Una `DivisionEspecial` solo puede aparecer en un registro de asignación.
+- Una `DivisionEspecial` puede aparecer en muchos registros de asignación.
 - El registro de asignación se consulta, modifica o elimina sin eliminar al `Recluta`.
 
 ## 3.6. Resumen de relaciones
 
 ```
 Rama (1) ──── (N) Division
-Rama (1) ──── (N) DivisionEspecial
+Division (1) ──── (N) DivisionEspecial
 Rama (1) ──── (N) Recluta
-Recluta (1) ──── (1) ReclutaDivisionEspecial          [opcional del lado Recluta]
-ReclutaDivisionEspecial (1) ──── (1) DivisionEspecial
+Recluta (1) ──── (1) AptoDivisionEspecial        [opcional del lado Recluta]
+DivisionEspecial (1) ──── (N) AptoDivisionEspecial
 ```
 
-Tablas generadas por Hibernate: `rama`, `division`, `division_especial`, `recluta` y
-`recluta_division_especial`.
+Tablas generadas por Hibernate: `ramas`, `divisiones`, `divisiones_especiales`,
+`reclutas` y `aptos_division_especial`.
 
 ---
 
@@ -166,27 +166,29 @@ Tablas generadas por Hibernate: `rama`, `division`, `division_especial`, `reclut
 
 ## RF-01 Gestión de ramas
 El sistema debe permitir crear, consultar, modificar y eliminar ramas de la UNSC,
-registrando nombre, descripción y estado, y permitiendo buscarlas por nombre.
+registrando nombre y descripción, y permitiendo buscarlas por nombre.
 
 ## RF-02 Gestión de divisiones
 El sistema debe permitir crear, consultar, modificar y eliminar divisiones, asociarlas
-a una rama existente y buscarlas por nombre, tipo, estado o rama.
+a una rama existente y buscarlas por nombre o rama.
 
 ## RF-03 Gestión de divisiones especiales
 El sistema debe permitir crear, consultar, modificar y eliminar divisiones especiales,
-asociarlas a una rama existente y buscarlas por nombre, estado o rama.
+asociarlas a una división existente, mostrar la rama a la que pertenece dicha división y
+buscarlas por nombre, división o rama.
 
 ## RF-04 Gestión de reclutas
 El sistema debe permitir crear, consultar, modificar y eliminar reclutas, registrar sus
-datos personales y militares, asignarles una rama y buscarlos por código, nombre,
-apellido, rango, estado o rama.
+datos personales y físicos, asignarles una rama y buscarlos por identificador, nombre,
+apellido o rama.
 
 ## RF-05 Gestión de asignaciones a divisiones especiales
 El sistema debe permitir seleccionar un recluta existente y registrar su asignación a una
-división especial, indicando especialidad, fecha de aptitud y estado de aptitud. Cada
-recluta solo puede tener una asignación y cada división especial solo puede estar asociada
-a un registro. La asignación debe poder consultarse, modificarse o retirarse sin eliminar
-al recluta, y debe poder buscarse por especialidad, estado de aptitud o división especial.
+división especial, indicando la división especial (que actúa como especialidad), la fecha
+de evaluación, el resultado de aptitud y el puntaje obtenido. Cada recluta solo puede
+tener una asignación, mientras que una división especial puede tener muchas asignaciones.
+La asignación debe poder consultarse, modificarse o retirarse sin eliminar al recluta, y
+debe poder buscarse por división especial o estado de aptitud.
 
 ## RF-06 Interfaz de usuario
 El sistema debe ofrecer una interfaz web implementada con Vaadin Flow, organizada en
@@ -210,10 +212,12 @@ listar los registros de cada módulo, mostrando los datos mínimos definidos en 
 entidades.
 
 ## RF-10 Integridad y validación básica
-El sistema debe validar los campos obligatorios antes de guardar, impedir códigos
-duplicados en reclutas e impedir la eliminación de una rama con divisiones, divisiones
-especiales o reclutas asociados, de una división especial con una asignación o de un
-recluta con una asignación, informando el motivo al usuario mediante notificaciones.
+El sistema debe validar manualmente los campos obligatorios antes de guardar y notificar
+cuando falte alguno, garantizar que cada recluta conserve su identificador único
+autogenerado (`idRecluta`) e impedir la eliminación de una rama con divisiones o reclutas
+asociados, de una división con divisiones especiales asociadas, de una división especial
+con asignaciones o de un recluta con una asignación, informando el motivo al usuario
+mediante notificaciones.
 
 ## RF-11 Retroalimentación al usuario
 El sistema debe notificar el resultado de cada operación (éxito, registro no encontrado o
@@ -226,10 +230,9 @@ error de validación) y limpiar el formulario cuando corresponda.
 Los siguientes aspectos no se especifican en la necesidad y deben acordarse antes de su
 implementación:
 
-- Rangos militares válidos y jerarquía entre ellos.
 - Cupos máximos de reclutas por rama y requisitos para pertenecer a una división especial.
-- Tipos de división y de división especial admitidos.
+- Criterios de evaluación, puntaje mínimo y vigencia de la aptitud para asignar un recluta
+  a una división especial.
 - Política de borrado (físico o lógico) y reasignación de reclutas al eliminar una rama o
   una división especial.
-- Tratamiento de reclutas dados de baja.
 - Necesidad real de autenticación, roles y permisos sobre el sistema.
