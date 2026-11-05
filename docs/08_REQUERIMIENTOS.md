@@ -36,25 +36,23 @@ en la necesidad.
 
 1. **LT-01 Versiones fijas del stack.** El proyecto queda atado a Java 25, Spring Boot 4.1.1 y Vaadin 25.3.0;
 
-2. **LT-02 Servicio CRUD sin consultas personalizadas.** `CrudService` Se excluyen consultas JPQL/HQL. Especializadas.
+2. **LT-02 Sin migraciones de esquema.** Se usa `spring.jpa.hibernate.ddl-auto=update`; no hay Flyway ni Liquibase. Los cambios de estructura no quedan versionados y no existe ruta de reversión.
 
-4. **LT-04 Sin migraciones de esquema.** Se usa `spring.jpa.hibernate.ddl-auto=update`; no hay Flyway ni Liquibase. Los cambios de estructura no quedan versionados y no existe ruta de reversión.
+3. **LT-03 Sin API REST ni integraciones externas.** La comunicación es propia de Vaadin (servidor-cliente por WebSocket); no se expone una API para aplicaciones móviles, escritorio o terceros.
 
-2. **LT-06 Sin API REST ni integraciones externas.** La comunicación es propia de Vaadin (servidor-cliente por WebSocket); no se expone una API para aplicaciones móviles, escritorio o terceros.
+4. **LT-04 Dependencia exclusiva de PostgreSQL y de Neon.** El dialecto de SQL está fijado a PostgreSQL y la base de datos se hospeda en Neon.
 
-7. **LT-07 Dependencia exclusiva de PostgreSQL y de Neon.** El dialecto de SQL está fijado a PostgreSQL y la base de datos se hospeda en Neon.
+5. **LT-05 Dependencia a internet** El sistema requiere conexión a internet, está sujeto a los límites de conexiones y almacenamiento del plan contratado, y no opera sin conexión.
 
-8. **LT-07 Dependencia a internet** El sistema requiere conexión a internet, está sujeto a los límites de conexiones y almacenamiento del plan contratado, y no opera sin conexión.
+6. **LT-06 Validación de datos mínima.** No se usa Bean Validation; los valores se convierten manualmente y un dato inválido se transforma en `0`, `null` o se descarta, sin mensajes de error de campo.
 
-8. **LT-08 Validación de datos mínima.** No se usa Bean Validation; los valores se convierten manualmente y un dato inválido se transforma en `0`, `null` o se descarta, sin mensajes de error de campo.
+7. **LT-07 Borrado físico sin reglas de cascada definidas.** Eliminar una rama, división, división especial o recluta con registros asociados puede fallar por restricciones de clave foránea o dejar información inconsistente.
 
-11. **LT-11 Borrado físico sin reglas de cascada definidas.** Eliminar una rama, división, división especial o recluta con registros asociados puede fallar por restricciones de clave foránea o dejar información inconsistente.
+8. **LT-08 Alcance funcional acotado.** No se contemplan reportes, exportación/importación de archivos, carga de imágenes, notificaciones por correo ni historial de cambios.
 
-13. **LT-13 Alcance funcional acotado.** No se contemplan reportes, exportación/importación de archivos, carga de imágenes, notificaciones por correo ni historial de cambios.
+9. **LT-09 Interfaz solo en español.** Los formularios usan `FormLayout` estándar; no hay internacionalización ni adaptaciones de usabilidad.
 
-14. **LT-14 Interfaz solo en español.** Los formularios usan `FormLayout` estándar; no hay internacionalización ni adaptaciones de usabilidad.
-
-15. **LT-15 Despliegue no automatizado.** La ejecución prevista es local; no se definen contenedores, CI/CD ni monitoreo.
+10. **LT-10 Despliegue no automatizado.** La ejecución prevista es local; no se definen contenedores, CI/CD ni monitoreo.
 
 ---
 
