@@ -7,26 +7,36 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "categorias")
-public class Categoria {
+@Table(name = "ramas")
+public class Rama {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer idRama;
+
     private String nombre;
+
     private String descripcion;
 
     // ===================
-    // Constructores
+    // Constructor vacío
     // ===================
-    public Categoria() {
+    public Rama() {
     }
 
-    public Categoria(String nombre, String descripcion) {
-        this(null, nombre, descripcion);
+    // ===================
+    // Constructor sin ID
+    // ===================
+    public Rama(String nombre, String descripcion) {
+        this.nombre = nombre;
+        this.descripcion = descripcion;
     }
 
-    public Categoria(Long id, String nombre, String descripcion) {
-        this.id = id;
+    // ===================
+    // Constructor con ID
+    // ===================
+    public Rama(Integer idRama, String nombre, String descripcion) {
+        this.idRama = idRama;
         this.nombre = nombre;
         this.descripcion = descripcion;
     }
@@ -34,12 +44,12 @@ public class Categoria {
     // ===================
     // Getters y setters
     // ===================
-    public Long getId() {
-        return id;
+    public Integer getIdRama() {
+        return idRama;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public void setIdRama(Integer idRama) {
+        this.idRama = idRama;
     }
 
     public String getNombre() {
@@ -60,6 +70,6 @@ public class Categoria {
 
     @Override
     public String toString() {
-        return "Categoria [id=" + id + ", nombre=" + nombre + "]";
+        return "Rama [idRama=" + idRama + ", nombre=" + nombre + ", descripcion=" + descripcion + "]";
     }
 }

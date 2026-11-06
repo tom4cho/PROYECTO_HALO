@@ -1,147 +1,71 @@
 package com.example;
 
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
-import com.example.model.Categoria;
-import com.example.model.Producto;
-import com.example.model.Proveedor;
-import com.example.model.Usuario;
+import com.example.model.AptoDivisionEspecial;
+import com.example.model.Division;
+import com.example.model.DivisionEspecial;
+import com.example.model.Rama;
+import com.example.model.Recluta;
 import com.example.service.CrudService;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.HasValue;
+import com.vaadin.flow.component.ItemLabelGenerator;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.TabSheet;
+import com.vaadin.flow.component.textfield.BigDecimalField;
+import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.provider.ListDataProvider;
+import com.vaadin.flow.function.SerializableRunnable;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
-@PageTitle("Gestión CRUD - Sistema de Inventario")
+@PageTitle("Gestión CRUD - UNSC")
 @Route("")
 public class MainView extends VerticalLayout {
 
     private final CrudService crudService;
+    private final List<SerializableRunnable> comboRefrescos = new ArrayList<>();
 
     public MainView(CrudService crudService) {
         this.crudService = crudService;
         setSizeFull();
         setPadding(true);
         setSpacing(true);
+        getStyle().set("background-color", "white");
 
         TabSheet tabs = new TabSheet();
         tabs.setWidthFull();
-        tabs.add("Productos", crearSeccionProductos());
-        tabs.add("Categorías", crearSeccionCategorias());
-        tabs.add("Proveedores", crearSeccionProveedores());
-        tabs.add("Usuarios", crearSeccionUsuarios());
+        tabs.add("Ramas", crearSeccionRamas());
+        tabs.add("Divisiones", crearSeccionDivisiones());
+        tabs.add("Divisiones Especiales", crearSeccionDivisionesEspeciales());
+        tabs.add("Reclutas", crearSeccionReclutas());
+        tabs.add("Aptos División Especial", crearSeccionAptosDivisionEspecial());
+        tabs.add("Consultas", crearSeccionConsultas());
+        tabs.addSelectedChangeListener(e -> recargarCombos());
 
-        add(new H2("Sistema de Inventario - CRUD"), tabs);
+        add(new H2("Sistema UNSC - CRUD"), tabs);
     }
 
     // ==========================================
-    // 1. PRODUCTOS
+    // 1. RAMAS
     // ==========================================
-    private Component crearSeccionProductos() {
-        VerticalLayout layout = new VerticalLayout();
-        TextField idField = new TextField("ID");
-        TextField codigoField = new TextField("Código");
-        TextField nombreField = new TextField("Nombre");
-        TextField categoriaField = new TextField("Categoría");
-        TextField precioField = new TextField("Precio");
-        TextField stockField = new TextField("Stock");
-
-        FormLayout form = new FormLayout(idField, codigoField, nombreField, categoriaField, precioField, stockField);
-
-        Grid<Producto> grid = new Grid<>(Producto.class, false);
-        grid.addColumn(Producto::getId).setHeader("ID").setAutoWidth(true);
-        grid.addColumn(Producto::getCodigo).setHeader("Código").setAutoWidth(true);
-        grid.addColumn(Producto::getNombre).setHeader("Nombre").setAutoWidth(true);
-        grid.addColumn(Producto::getCategoria).setHeader("Categoría").setAutoWidth(true);
-        grid.addColumn(Producto::getPrecio).setHeader("Precio").setAutoWidth(true);
-        grid.addColumn(Producto::getStock).setHeader("Stock").setAutoWidth(true);
-
-        Runnable refrescar = () -> grid.setItems(crudService.listarTodos(Producto.class));
-        refrescar.run();
-
-        grid.asSingleSelect().addValueChangeListener(e -> {
-            Producto p = e.getValue();
-            if (p != null) {
-                idField.setValue(p.getId() != null ? p.getId().toString() : "");
-                codigoField.setValue(p.getCodigo() != null ? p.getCodigo() : "");
-                nombreField.setValue(p.getNombre() != null ? p.getNombre() : "");
-                categoriaField.setValue(p.getCategoria() != null ? p.getCategoria() : "");
-                precioField.setValue(p.getPrecio() != null ? p.getPrecio().toString() : "");
-                stockField.setValue(p.getStock() != null ? p.getStock().toString() : "");
-            }
-        });
-
-        Button btnCrear = new Button("Crear", e -> {
-            Producto p = new Producto(
-                codigoField.getValue(),
-                nombreField.getValue(),
-                categoriaField.getValue(),
-                parseDouble(precioField.getValue()),
-                parseInt(stockField.getValue())
-            );
-            crudService.guardar(p);
-            refrescar.run();
-            idField.setValue(p.getId() != null ? p.getId().toString() : "");
-            Notification.show("Producto guardado con ID: " + p.getId());
-        });
-        btnCrear.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-
-        Button btnConsultar = new Button("Consultar", e -> {
-            Producto p = crudService.buscarPorId(Producto.class, parseId(idField));
-            if (p != null) {
-                grid.asSingleSelect().setValue(p);
-                Notification.show("Encontrado: " + p.getNombre());
-            } else {
-                Notification.show("No encontrado");
-            }
-        });
-
-        Button btnActualizar = new Button("Actualizar", e -> {
-            Producto p = crudService.buscarPorId(Producto.class, parseId(idField));
-            if (p != null) {
-                p.setCodigo(codigoField.getValue());
-                p.setNombre(nombreField.getValue());
-                p.setCategoria(categoriaField.getValue());
-                p.setPrecio(parseDouble(precioField.getValue()));
-                p.setStock(parseInt(stockField.getValue()));
-                crudService.actualizar(p);
-                refrescar.run();
-                Notification.show("Producto actualizado");
-            } else {
-                Notification.show("ID no encontrado");
-            }
-        });
-
-        Button btnEliminar = new Button("Eliminar", e -> {
-            crudService.eliminar(Producto.class, parseId(idField));
-            refrescar.run();
-            limpiar(idField, codigoField, nombreField, categoriaField, precioField, stockField);
-            Notification.show("Producto eliminado");
-        });
-        btnEliminar.addThemeVariants(ButtonVariant.LUMO_ERROR);
-
-        Button btnLimpiar = new Button("Limpiar", e -> {
-            limpiar(idField, codigoField, nombreField, categoriaField, precioField, stockField);
-            grid.asSingleSelect().clear();
-        });
-
-        layout.add(form, crearAcciones(btnCrear, btnConsultar, btnActualizar, btnEliminar, btnLimpiar), grid);
-        return layout;
-    }
-
-    // ==========================================
-    // 2. CATEGORÍAS
-    // ==========================================
-    private Component crearSeccionCategorias() {
+    private Component crearSeccionRamas() {
         VerticalLayout layout = new VerticalLayout();
         TextField idField = new TextField("ID");
         TextField nombreField = new TextField("Nombre");
@@ -149,60 +73,70 @@ public class MainView extends VerticalLayout {
 
         FormLayout form = new FormLayout(idField, nombreField, descripcionField);
 
-        Grid<Categoria> grid = new Grid<>(Categoria.class, false);
-        grid.addColumn(Categoria::getId).setHeader("ID").setAutoWidth(true);
-        grid.addColumn(Categoria::getNombre).setHeader("Nombre").setAutoWidth(true);
-        grid.addColumn(Categoria::getDescripcion).setHeader("Descripción").setAutoWidth(true);
+        Grid<Rama> grid = new Grid<>(Rama.class, false);
+        grid.addColumn(Rama::getIdRama).setHeader("ID").setAutoWidth(true);
+        grid.addColumn(Rama::getNombre).setHeader("Nombre").setAutoWidth(true);
+        grid.addColumn(Rama::getDescripcion).setHeader("Descripción").setAutoWidth(true);
 
-        Runnable refrescar = () -> grid.setItems(crudService.listarTodos(Categoria.class));
+        Runnable refrescar = () -> grid.setItems(crudService.listarTodos(Rama.class));
         refrescar.run();
 
         grid.asSingleSelect().addValueChangeListener(e -> {
-            Categoria c = e.getValue();
-            if (c != null) {
-                idField.setValue(c.getId() != null ? c.getId().toString() : "");
-                nombreField.setValue(c.getNombre() != null ? c.getNombre() : "");
-                descripcionField.setValue(c.getDescripcion() != null ? c.getDescripcion() : "");
+            Rama r = e.getValue();
+            if (r != null) {
+                idField.setValue(r.getIdRama() != null ? r.getIdRama().toString() : "");
+                nombreField.setValue(r.getNombre() != null ? r.getNombre() : "");
+                descripcionField.setValue(r.getDescripcion() != null ? r.getDescripcion() : "");
             }
         });
 
         Button btnCrear = new Button("Crear", e -> {
-            Categoria c = new Categoria(nombreField.getValue(), descripcionField.getValue());
-            crudService.guardar(c);
+            if (vacio(nombreField.getValue())) {
+                Notification.show("Ingrese el nombre de la rama");
+                return;
+            }
+            Rama r = new Rama(nombreField.getValue(), descripcionField.getValue());
+            crudService.guardar(r);
             refrescar.run();
-            idField.setValue(c.getId() != null ? c.getId().toString() : "");
-            Notification.show("Categoría guardada con ID: " + c.getId());
+            idField.setValue(r.getIdRama() != null ? r.getIdRama().toString() : "");
+            Notification.show("Rama guardada con ID: " + r.getIdRama());
         });
         btnCrear.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
         Button btnConsultar = new Button("Consultar", e -> {
-            Categoria c = crudService.buscarPorId(Categoria.class, parseId(idField));
-            if (c != null) {
-                grid.asSingleSelect().setValue(c);
-                Notification.show("Encontrada: " + c.getNombre());
-            } else {
-                Notification.show("No encontrada");
+            Rama r = buscar(Rama.class, idField);
+            if (r != null) {
+                grid.asSingleSelect().setValue(r);
+                Notification.show("Encontrada: " + r.getNombre());
             }
         });
 
         Button btnActualizar = new Button("Actualizar", e -> {
-            Categoria c = crudService.buscarPorId(Categoria.class, parseId(idField));
-            if (c != null) {
-                c.setNombre(nombreField.getValue());
-                c.setDescripcion(descripcionField.getValue());
-                crudService.actualizar(c);
+            Rama r = buscar(Rama.class, idField);
+            if (r != null) {
+                if (vacio(nombreField.getValue())) {
+                    Notification.show("Ingrese el nombre de la rama");
+                    return;
+                }
+                r.setNombre(nombreField.getValue());
+                r.setDescripcion(descripcionField.getValue());
+                crudService.actualizar(r);
                 refrescar.run();
-                Notification.show("Categoría actualizada");
-            } else {
-                Notification.show("ID no encontrado");
+                Notification.show("Rama actualizada");
             }
         });
 
         Button btnEliminar = new Button("Eliminar", e -> {
-            crudService.eliminar(Categoria.class, parseId(idField));
+            Integer id = parseId(idField);
+            if (id == null) {
+                Notification.show("Ingrese un ID válido");
+                return;
+            }
+            boolean eliminado = crudService.eliminar(Rama.class, id);
             refrescar.run();
             limpiar(idField, nombreField, descripcionField);
-            Notification.show("Categoría eliminada");
+            grid.asSingleSelect().clear();
+            Notification.show(eliminado ? "Rama eliminada" : "Rama no encontrada");
         });
         btnEliminar.addThemeVariants(ButtonVariant.LUMO_ERROR);
 
@@ -216,93 +150,98 @@ public class MainView extends VerticalLayout {
     }
 
     // ==========================================
-    // 3. PROVEEDORES
+    // 2. DIVISIONES
     // ==========================================
-    private Component crearSeccionProveedores() {
+    private Component crearSeccionDivisiones() {
         VerticalLayout layout = new VerticalLayout();
         TextField idField = new TextField("ID");
         TextField nombreField = new TextField("Nombre");
-        TextField contactoField = new TextField("Contacto");
-        TextField telefonoField = new TextField("Teléfono");
-        TextField emailField = new TextField("Email");
-        TextField direccionField = new TextField("Dirección");
+        TextField descripcionField = new TextField("Descripción");
+        ComboBox<Rama> ramaCombo = crearCombo("Rama", Rama.class, this::etiquetaRama);
 
-        FormLayout form = new FormLayout(idField, nombreField, contactoField, telefonoField, emailField, direccionField);
+        FormLayout form = new FormLayout(idField, nombreField, descripcionField, ramaCombo);
 
-        Grid<Proveedor> grid = new Grid<>(Proveedor.class, false);
-        grid.addColumn(Proveedor::getId).setHeader("ID").setAutoWidth(true);
-        grid.addColumn(Proveedor::getNombre).setHeader("Nombre").setAutoWidth(true);
-        grid.addColumn(Proveedor::getContacto).setHeader("Contacto").setAutoWidth(true);
-        grid.addColumn(Proveedor::getTelefono).setHeader("Teléfono").setAutoWidth(true);
-        grid.addColumn(Proveedor::getEmail).setHeader("Email").setAutoWidth(true);
-        grid.addColumn(Proveedor::getDireccion).setHeader("Dirección").setAutoWidth(true);
+        Grid<Division> grid = new Grid<>(Division.class, false);
+        grid.addColumn(Division::getIdDivision).setHeader("ID").setAutoWidth(true);
+        grid.addColumn(Division::getNombre).setHeader("Nombre").setAutoWidth(true);
+        grid.addColumn(Division::getDescripcion).setHeader("Descripción").setAutoWidth(true);
+        grid.addColumn(d -> d.getIdRama() != null ? d.getIdRama().getNombre() : "")
+                .setHeader("Rama").setAutoWidth(true);
 
-        Runnable refrescar = () -> grid.setItems(crudService.listarTodos(Proveedor.class));
+        Runnable refrescar = () -> grid.setItems(crudService.listarTodos(Division.class));
         refrescar.run();
 
         grid.asSingleSelect().addValueChangeListener(e -> {
-            Proveedor p = e.getValue();
-            if (p != null) {
-                idField.setValue(p.getId() != null ? p.getId().toString() : "");
-                nombreField.setValue(p.getNombre() != null ? p.getNombre() : "");
-                contactoField.setValue(p.getContacto() != null ? p.getContacto() : "");
-                telefonoField.setValue(p.getTelefono() != null ? p.getTelefono() : "");
-                emailField.setValue(p.getEmail() != null ? p.getEmail() : "");
-                direccionField.setValue(p.getDireccion() != null ? p.getDireccion() : "");
+            Division d = e.getValue();
+            if (d != null) {
+                idField.setValue(d.getIdDivision() != null ? d.getIdDivision().toString() : "");
+                nombreField.setValue(d.getNombre() != null ? d.getNombre() : "");
+                descripcionField.setValue(d.getDescripcion() != null ? d.getDescripcion() : "");
+                ramaCombo.setValue(d.getIdRama());
             }
         });
 
         Button btnCrear = new Button("Crear", e -> {
-            Proveedor p = new Proveedor(
-                nombreField.getValue(),
-                contactoField.getValue(),
-                telefonoField.getValue(),
-                emailField.getValue(),
-                direccionField.getValue()
-            );
-            crudService.guardar(p);
+            if (vacio(nombreField.getValue())) {
+                Notification.show("Ingrese el nombre de la división");
+                return;
+            }
+            if (ramaCombo.getValue() == null) {
+                Notification.show("Seleccione una rama");
+                return;
+            }
+            Division d = new Division(nombreField.getValue(), descripcionField.getValue(), ramaCombo.getValue());
+            crudService.guardar(d);
             refrescar.run();
-            idField.setValue(p.getId() != null ? p.getId().toString() : "");
-            Notification.show("Proveedor guardado con ID: " + p.getId());
+            idField.setValue(d.getIdDivision() != null ? d.getIdDivision().toString() : "");
+            Notification.show("División guardada con ID: " + d.getIdDivision());
         });
         btnCrear.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
         Button btnConsultar = new Button("Consultar", e -> {
-            Proveedor p = crudService.buscarPorId(Proveedor.class, parseId(idField));
-            if (p != null) {
-                grid.asSingleSelect().setValue(p);
-                Notification.show("Encontrado: " + p.getNombre());
-            } else {
-                Notification.show("No encontrado");
+            Division d = buscar(Division.class, idField);
+            if (d != null) {
+                grid.asSingleSelect().setValue(d);
+                Notification.show("Encontrada: " + d.getNombre());
             }
         });
 
         Button btnActualizar = new Button("Actualizar", e -> {
-            Proveedor p = crudService.buscarPorId(Proveedor.class, parseId(idField));
-            if (p != null) {
-                p.setNombre(nombreField.getValue());
-                p.setContacto(contactoField.getValue());
-                p.setTelefono(telefonoField.getValue());
-                p.setEmail(emailField.getValue());
-                p.setDireccion(direccionField.getValue());
-                crudService.actualizar(p);
+            Division d = buscar(Division.class, idField);
+            if (d != null) {
+                if (vacio(nombreField.getValue())) {
+                    Notification.show("Ingrese el nombre de la división");
+                    return;
+                }
+                if (ramaCombo.getValue() == null) {
+                    Notification.show("Seleccione una rama");
+                    return;
+                }
+                d.setNombre(nombreField.getValue());
+                d.setDescripcion(descripcionField.getValue());
+                d.setIdRama(ramaCombo.getValue());
+                crudService.actualizar(d);
                 refrescar.run();
-                Notification.show("Proveedor actualizado");
-            } else {
-                Notification.show("ID no encontrado");
+                Notification.show("División actualizada");
             }
         });
 
         Button btnEliminar = new Button("Eliminar", e -> {
-            crudService.eliminar(Proveedor.class, parseId(idField));
+            Integer id = parseId(idField);
+            if (id == null) {
+                Notification.show("Ingrese un ID válido");
+                return;
+            }
+            boolean eliminado = crudService.eliminar(Division.class, id);
             refrescar.run();
-            limpiar(idField, nombreField, contactoField, telefonoField, emailField, direccionField);
-            Notification.show("Proveedor eliminado");
+            limpiar(idField, nombreField, descripcionField, ramaCombo);
+            grid.asSingleSelect().clear();
+            Notification.show(eliminado ? "División eliminada" : "División no encontrada");
         });
         btnEliminar.addThemeVariants(ButtonVariant.LUMO_ERROR);
 
         Button btnLimpiar = new Button("Limpiar", e -> {
-            limpiar(idField, nombreField, contactoField, telefonoField, emailField, direccionField);
+            limpiar(idField, nombreField, descripcionField, ramaCombo);
             grid.asSingleSelect().clear();
         });
 
@@ -311,140 +250,547 @@ public class MainView extends VerticalLayout {
     }
 
     // ==========================================
-    // 4. USUARIOS
+    // 3. DIVISIONES ESPECIALES
     // ==========================================
-    private Component crearSeccionUsuarios() {
+    private Component crearSeccionDivisionesEspeciales() {
+        VerticalLayout layout = new VerticalLayout();
+        TextField idField = new TextField("ID");
+        TextField nombreField = new TextField("Nombre");
+        TextField descripcionField = new TextField("Descripción");
+        ComboBox<Division> divisionCombo = crearCombo("División", Division.class, this::etiquetaDivision);
+
+        FormLayout form = new FormLayout(idField, nombreField, descripcionField, divisionCombo);
+
+        Grid<DivisionEspecial> grid = new Grid<>(DivisionEspecial.class, false);
+        grid.addColumn(DivisionEspecial::getIdDivisionEspecial).setHeader("ID").setAutoWidth(true);
+        grid.addColumn(DivisionEspecial::getNombre).setHeader("Nombre").setAutoWidth(true);
+        grid.addColumn(DivisionEspecial::getDescripcion).setHeader("Descripción").setAutoWidth(true);
+        grid.addColumn(de -> de.getIdDivision() != null ? de.getIdDivision().getNombre() : "")
+                .setHeader("División").setAutoWidth(true);
+
+        Runnable refrescar = () -> grid.setItems(crudService.listarTodos(DivisionEspecial.class));
+        refrescar.run();
+
+        grid.asSingleSelect().addValueChangeListener(e -> {
+            DivisionEspecial de = e.getValue();
+            if (de != null) {
+                idField.setValue(de.getIdDivisionEspecial() != null ? de.getIdDivisionEspecial().toString() : "");
+                nombreField.setValue(de.getNombre() != null ? de.getNombre() : "");
+                descripcionField.setValue(de.getDescripcion() != null ? de.getDescripcion() : "");
+                divisionCombo.setValue(de.getIdDivision());
+            }
+        });
+
+        Button btnCrear = new Button("Crear", e -> {
+            if (vacio(nombreField.getValue())) {
+                Notification.show("Ingrese el nombre de la división especial");
+                return;
+            }
+            if (divisionCombo.getValue() == null) {
+                Notification.show("Seleccione una división");
+                return;
+            }
+            DivisionEspecial de = new DivisionEspecial(nombreField.getValue(), descripcionField.getValue(),
+                    divisionCombo.getValue());
+            crudService.guardar(de);
+            refrescar.run();
+            idField.setValue(de.getIdDivisionEspecial() != null ? de.getIdDivisionEspecial().toString() : "");
+            Notification.show("División especial guardada con ID: " + de.getIdDivisionEspecial());
+        });
+        btnCrear.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+
+        Button btnConsultar = new Button("Consultar", e -> {
+            DivisionEspecial de = buscar(DivisionEspecial.class, idField);
+            if (de != null) {
+                grid.asSingleSelect().setValue(de);
+                Notification.show("Encontrada: " + de.getNombre());
+            }
+        });
+
+        Button btnActualizar = new Button("Actualizar", e -> {
+            DivisionEspecial de = buscar(DivisionEspecial.class, idField);
+            if (de != null) {
+                if (vacio(nombreField.getValue())) {
+                    Notification.show("Ingrese el nombre de la división especial");
+                    return;
+                }
+                if (divisionCombo.getValue() == null) {
+                    Notification.show("Seleccione una división");
+                    return;
+                }
+                de.setNombre(nombreField.getValue());
+                de.setDescripcion(descripcionField.getValue());
+                de.setIdDivision(divisionCombo.getValue());
+                crudService.actualizar(de);
+                refrescar.run();
+                Notification.show("División especial actualizada");
+            }
+        });
+
+        Button btnEliminar = new Button("Eliminar", e -> {
+            Integer id = parseId(idField);
+            if (id == null) {
+                Notification.show("Ingrese un ID válido");
+                return;
+            }
+            boolean eliminado = crudService.eliminar(DivisionEspecial.class, id);
+            refrescar.run();
+            limpiar(idField, nombreField, descripcionField, divisionCombo);
+            grid.asSingleSelect().clear();
+            Notification.show(eliminado ? "División especial eliminada" : "División especial no encontrada");
+        });
+        btnEliminar.addThemeVariants(ButtonVariant.LUMO_ERROR);
+
+        Button btnLimpiar = new Button("Limpiar", e -> {
+            limpiar(idField, nombreField, descripcionField, divisionCombo);
+            grid.asSingleSelect().clear();
+        });
+
+        layout.add(form, crearAcciones(btnCrear, btnConsultar, btnActualizar, btnEliminar, btnLimpiar), grid);
+        return layout;
+    }
+
+    // ==========================================
+    // 4. RECLUTAS
+    // ==========================================
+    private Component crearSeccionReclutas() {
         VerticalLayout layout = new VerticalLayout();
         TextField idField = new TextField("ID");
         TextField nombreField = new TextField("Nombre");
         TextField apellidoField = new TextField("Apellido");
-        TextField emailField = new TextField("Email");
-        TextField telefonoField = new TextField("Teléfono");
-        TextField direccionField = new TextField("Dirección");
-        TextField rolField = new TextField("Rol");
-        TextField estadoField = new TextField("Estado");
+        IntegerField alturaField = new IntegerField("Altura");
+        BigDecimalField pesoField = new BigDecimalField("Peso");
+        ComboBox<Rama> ramaCombo = crearCombo("Rama", Rama.class, this::etiquetaRama);
 
-        FormLayout form = new FormLayout(idField, nombreField, apellidoField, emailField, telefonoField, direccionField, rolField, estadoField);
+        FormLayout form = new FormLayout(idField, nombreField, apellidoField, alturaField, pesoField, ramaCombo);
 
-        Grid<Usuario> grid = new Grid<>(Usuario.class, false);
-        grid.addColumn(Usuario::getId).setHeader("ID").setAutoWidth(true);
-        grid.addColumn(Usuario::getNombre).setHeader("Nombre").setAutoWidth(true);
-        grid.addColumn(Usuario::getApellido).setHeader("Apellido").setAutoWidth(true);
-        grid.addColumn(Usuario::getEmail).setHeader("Email").setAutoWidth(true);
-        grid.addColumn(Usuario::getTelefono).setHeader("Teléfono").setAutoWidth(true);
-        grid.addColumn(Usuario::getRol).setHeader("Rol").setAutoWidth(true);
-        grid.addColumn(Usuario::getEstado).setHeader("Estado").setAutoWidth(true);
+        Grid<Recluta> grid = new Grid<>(Recluta.class, false);
+        grid.addColumn(Recluta::getIdRecluta).setHeader("ID").setAutoWidth(true);
+        grid.addColumn(Recluta::getNombre).setHeader("Nombre").setAutoWidth(true);
+        grid.addColumn(Recluta::getApellido).setHeader("Apellido").setAutoWidth(true);
+        grid.addColumn(Recluta::getAltura).setHeader("Altura").setAutoWidth(true);
+        grid.addColumn(Recluta::getPeso).setHeader("Peso").setAutoWidth(true);
+        grid.addColumn(r -> r.getIdRama() != null ? r.getIdRama().getNombre() : "")
+                .setHeader("Rama").setAutoWidth(true);
+        grid.addColumn(r -> r.getIdApto() != null ? r.getIdApto().getIdApto().toString() : "")
+                .setHeader("Apto").setAutoWidth(true);
 
-        Runnable refrescar = () -> grid.setItems(crudService.listarTodos(Usuario.class));
+        Runnable refrescar = () -> grid.setItems(crudService.listarTodos(Recluta.class));
         refrescar.run();
 
         grid.asSingleSelect().addValueChangeListener(e -> {
-            Usuario u = e.getValue();
-            if (u != null) {
-                idField.setValue(u.getId() != null ? u.getId().toString() : "");
-                nombreField.setValue(u.getNombre() != null ? u.getNombre() : "");
-                apellidoField.setValue(u.getApellido() != null ? u.getApellido() : "");
-                emailField.setValue(u.getEmail() != null ? u.getEmail() : "");
-                telefonoField.setValue(u.getTelefono() != null ? u.getTelefono() : "");
-                direccionField.setValue(u.getDireccion() != null ? u.getDireccion() : "");
-                rolField.setValue(u.getRol() != null ? u.getRol() : "");
-                estadoField.setValue(u.getEstado() != null ? u.getEstado() : "");
+            Recluta r = e.getValue();
+            if (r != null) {
+                idField.setValue(r.getIdRecluta() != null ? r.getIdRecluta().toString() : "");
+                nombreField.setValue(r.getNombre() != null ? r.getNombre() : "");
+                apellidoField.setValue(r.getApellido() != null ? r.getApellido() : "");
+                alturaField.setValue(r.getAltura());
+                pesoField.setValue(r.getPeso());
+                ramaCombo.setValue(r.getIdRama());
             }
         });
 
         Button btnCrear = new Button("Crear", e -> {
-            Usuario u = new Usuario(
-                nombreField.getValue(),
-                apellidoField.getValue(),
-                emailField.getValue(),
-                telefonoField.getValue(),
-                direccionField.getValue(),
-                rolField.getValue(),
-                estadoField.getValue(),
-                LocalDateTime.now()
-            );
-            crudService.guardar(u);
+            if (vacio(nombreField.getValue())) {
+                Notification.show("Ingrese el nombre del recluta");
+                return;
+            }
+            if (vacio(apellidoField.getValue())) {
+                Notification.show("Ingrese el apellido del recluta");
+                return;
+            }
+            if (ramaCombo.getValue() == null) {
+                Notification.show("Seleccione una rama");
+                return;
+            }
+            Recluta r = new Recluta(nombreField.getValue(), apellidoField.getValue(), alturaField.getValue(),
+                    pesoField.getValue(), ramaCombo.getValue(), null);
+            crudService.guardar(r);
             refrescar.run();
-            idField.setValue(u.getId() != null ? u.getId().toString() : "");
-            Notification.show("Usuario guardado con ID: " + u.getId());
+            idField.setValue(r.getIdRecluta() != null ? r.getIdRecluta().toString() : "");
+            Notification.show("Recluta guardado con ID: " + r.getIdRecluta());
         });
         btnCrear.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
         Button btnConsultar = new Button("Consultar", e -> {
-            Usuario u = crudService.buscarPorId(Usuario.class, parseId(idField));
-            if (u != null) {
-                grid.asSingleSelect().setValue(u);
-                Notification.show("Encontrado: " + u.getNombre() + " " + u.getApellido());
-            } else {
-                Notification.show("No encontrado");
+            Recluta r = buscar(Recluta.class, idField);
+            if (r != null) {
+                grid.asSingleSelect().setValue(r);
+                Notification.show("Encontrado: " + nombreCompleto(r));
             }
         });
 
         Button btnActualizar = new Button("Actualizar", e -> {
-            Usuario u = crudService.buscarPorId(Usuario.class, parseId(idField));
-            if (u != null) {
-                u.setNombre(nombreField.getValue());
-                u.setApellido(apellidoField.getValue());
-                u.setEmail(emailField.getValue());
-                u.setTelefono(telefonoField.getValue());
-                u.setDireccion(direccionField.getValue());
-                u.setRol(rolField.getValue());
-                u.setEstado(estadoField.getValue());
-                crudService.actualizar(u);
+            Recluta r = buscar(Recluta.class, idField);
+            if (r != null) {
+                if (vacio(nombreField.getValue())) {
+                    Notification.show("Ingrese el nombre del recluta");
+                    return;
+                }
+                if (vacio(apellidoField.getValue())) {
+                    Notification.show("Ingrese el apellido del recluta");
+                    return;
+                }
+                if (ramaCombo.getValue() == null) {
+                    Notification.show("Seleccione una rama");
+                    return;
+                }
+                r.setNombre(nombreField.getValue());
+                r.setApellido(apellidoField.getValue());
+                r.setAltura(alturaField.getValue());
+                r.setPeso(pesoField.getValue());
+                r.setIdRama(ramaCombo.getValue());
+                crudService.actualizar(r);
                 refrescar.run();
-                Notification.show("Usuario actualizado");
-            } else {
-                Notification.show("ID no encontrado");
+                Notification.show("Recluta actualizado");
             }
         });
 
         Button btnEliminar = new Button("Eliminar", e -> {
-            crudService.eliminar(Usuario.class, parseId(idField));
+            Integer id = parseId(idField);
+            if (id == null) {
+                Notification.show("Ingrese un ID válido");
+                return;
+            }
+            boolean eliminado = crudService.eliminar(Recluta.class, id);
             refrescar.run();
-            limpiar(idField, nombreField, apellidoField, emailField, telefonoField, direccionField, rolField, estadoField);
-            Notification.show("Usuario eliminado");
+            limpiar(idField, nombreField, apellidoField, alturaField, pesoField, ramaCombo);
+            grid.asSingleSelect().clear();
+            Notification.show(eliminado ? "Recluta eliminado" : "Recluta no encontrado");
         });
         btnEliminar.addThemeVariants(ButtonVariant.LUMO_ERROR);
 
         Button btnLimpiar = new Button("Limpiar", e -> {
-            limpiar(idField, nombreField, apellidoField, emailField, telefonoField, direccionField, rolField, estadoField);
+            limpiar(idField, nombreField, apellidoField, alturaField, pesoField, ramaCombo);
             grid.asSingleSelect().clear();
         });
 
         layout.add(form, crearAcciones(btnCrear, btnConsultar, btnActualizar, btnEliminar, btnLimpiar), grid);
+        return layout;
+    }
+
+    // ==========================================
+    // 5. APTOS DIVISIÓN ESPECIAL
+    // ==========================================
+    private Component crearSeccionAptosDivisionEspecial() {
+        VerticalLayout layout = new VerticalLayout();
+        TextField idField = new TextField("ID");
+        ComboBox<Recluta> reclutaCombo = crearCombo("Recluta", Recluta.class, this::nombreCompleto);
+        ComboBox<DivisionEspecial> divisionEspecialCombo = crearCombo("División Especial", DivisionEspecial.class,
+                this::etiquetaDivisionEspecial);
+        Checkbox aptoServicioField = new Checkbox("Apto para servicio");
+        DatePicker fechaEvaluacionField = new DatePicker("Fecha de evaluación");
+        IntegerField puntajeField = new IntegerField("Puntaje");
+
+        FormLayout form = new FormLayout(idField, reclutaCombo, divisionEspecialCombo, aptoServicioField,
+                fechaEvaluacionField, puntajeField);
+
+        Grid<AptoDivisionEspecial> grid = new Grid<>(AptoDivisionEspecial.class, false);
+        grid.addColumn(AptoDivisionEspecial::getIdApto).setHeader("ID").setAutoWidth(true);
+        grid.addColumn(a -> a.getIdRecluta() != null ? nombreCompleto(a.getIdRecluta()) : "")
+                .setHeader("Recluta").setAutoWidth(true);
+        grid.addColumn(a -> a.getIdDivisionEspecial() != null ? a.getIdDivisionEspecial().getNombre() : "")
+                .setHeader("División Especial").setAutoWidth(true);
+        grid.addColumn(AptoDivisionEspecial::getAptoServicio).setHeader("Apto Servicio").setAutoWidth(true);
+        grid.addColumn(AptoDivisionEspecial::getFechaEvaluacion).setHeader("Fecha Evaluación").setAutoWidth(true);
+        grid.addColumn(AptoDivisionEspecial::getPuntaje).setHeader("Puntaje").setAutoWidth(true);
+
+        Runnable refrescar = () -> grid.setItems(crudService.listarTodos(AptoDivisionEspecial.class));
+        refrescar.run();
+
+        grid.asSingleSelect().addValueChangeListener(e -> {
+            AptoDivisionEspecial a = e.getValue();
+            if (a != null) {
+                idField.setValue(a.getIdApto() != null ? a.getIdApto().toString() : "");
+                reclutaCombo.setValue(a.getIdRecluta());
+                divisionEspecialCombo.setValue(a.getIdDivisionEspecial());
+                aptoServicioField.setValue(Boolean.TRUE.equals(a.getAptoServicio()));
+                fechaEvaluacionField.setValue(a.getFechaEvaluacion());
+                puntajeField.setValue(a.getPuntaje());
+            }
+        });
+
+        Button btnCrear = new Button("Crear", e -> {
+            if (reclutaCombo.getValue() == null) {
+                Notification.show("Seleccione un recluta");
+                return;
+            }
+            if (divisionEspecialCombo.getValue() == null) {
+                Notification.show("Seleccione una división especial");
+                return;
+            }
+            AptoDivisionEspecial a = new AptoDivisionEspecial(reclutaCombo.getValue(),
+                    divisionEspecialCombo.getValue(), aptoServicioField.getValue(),
+                    fechaEvaluacionField.getValue(), puntajeField.getValue());
+            crudService.guardar(a);
+            refrescar.run();
+            idField.setValue(a.getIdApto() != null ? a.getIdApto().toString() : "");
+            Notification.show("Apto guardado con ID: " + a.getIdApto());
+        });
+        btnCrear.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+
+        Button btnConsultar = new Button("Consultar", e -> {
+            AptoDivisionEspecial a = buscar(AptoDivisionEspecial.class, idField);
+            if (a != null) {
+                grid.asSingleSelect().setValue(a);
+                Notification.show("Encontrado: " + a.getIdApto());
+            }
+        });
+
+        Button btnActualizar = new Button("Actualizar", e -> {
+            AptoDivisionEspecial a = buscar(AptoDivisionEspecial.class, idField);
+            if (a != null) {
+                if (reclutaCombo.getValue() == null) {
+                    Notification.show("Seleccione un recluta");
+                    return;
+                }
+                if (divisionEspecialCombo.getValue() == null) {
+                    Notification.show("Seleccione una división especial");
+                    return;
+                }
+                a.setIdRecluta(reclutaCombo.getValue());
+                a.setIdDivisionEspecial(divisionEspecialCombo.getValue());
+                a.setAptoServicio(aptoServicioField.getValue());
+                a.setFechaEvaluacion(fechaEvaluacionField.getValue());
+                a.setPuntaje(puntajeField.getValue());
+                crudService.actualizar(a);
+                refrescar.run();
+                Notification.show("Apto actualizado");
+            }
+        });
+
+        Button btnEliminar = new Button("Eliminar", e -> {
+            Integer id = parseId(idField);
+            if (id == null) {
+                Notification.show("Ingrese un ID válido");
+                return;
+            }
+            boolean eliminado = crudService.eliminar(AptoDivisionEspecial.class, id);
+            refrescar.run();
+            limpiar(idField, reclutaCombo, divisionEspecialCombo, aptoServicioField, fechaEvaluacionField,
+                    puntajeField);
+            grid.asSingleSelect().clear();
+            Notification.show(eliminado ? "Apto eliminado" : "Apto no encontrado");
+        });
+        btnEliminar.addThemeVariants(ButtonVariant.LUMO_ERROR);
+
+        Button btnLimpiar = new Button("Limpiar", e -> {
+            limpiar(idField, reclutaCombo, divisionEspecialCombo, aptoServicioField, fechaEvaluacionField,
+                    puntajeField);
+            grid.asSingleSelect().clear();
+        });
+
+        layout.add(form, crearAcciones(btnCrear, btnConsultar, btnActualizar, btnEliminar, btnLimpiar), grid);
+        return layout;
+    }
+
+    // ==========================================
+    // 6. CONSULTAS DE ADSCRIPCIONES
+    // ==========================================
+    private Component crearSeccionConsultas() {
+        VerticalLayout layout = new VerticalLayout();
+
+        ComboBox<Division> divisionCombo = crearCombo("División", Division.class, this::etiquetaDivision);
+        ComboBox<DivisionEspecial> divisionEspecialCombo = crearCombo("División Especial",
+                DivisionEspecial.class, this::etiquetaDivisionEspecial);
+        Checkbox soloAptosField = new Checkbox("Solo soldados aptos");
+
+        divisionCombo.addValueChangeListener(e -> {
+            if (e.getValue() != null) {
+                divisionEspecialCombo.clear();
+            }
+        });
+        divisionEspecialCombo.addValueChangeListener(e -> {
+            if (e.getValue() != null) {
+                divisionCombo.clear();
+            }
+            soloAptosField.setEnabled(e.getValue() == null);
+        });
+
+        Grid<Recluta> gridReclutas = new Grid<>(Recluta.class, false);
+        gridReclutas.addColumn(Recluta::getIdRecluta).setHeader("ID").setAutoWidth(true);
+        gridReclutas.addColumn(Recluta::getNombre).setHeader("Nombre").setAutoWidth(true);
+        gridReclutas.addColumn(Recluta::getApellido).setHeader("Apellido").setAutoWidth(true);
+        gridReclutas.addColumn(Recluta::getAltura).setHeader("Altura").setAutoWidth(true);
+        gridReclutas.addColumn(Recluta::getPeso).setHeader("Peso").setAutoWidth(true);
+        gridReclutas.addColumn(r -> r.getIdRama() != null ? r.getIdRama().getNombre() : "")
+                .setHeader("Rama").setAutoWidth(true);
+        gridReclutas.setWidthFull();
+
+        Button btnBuscar = new Button("Buscar soldados", e -> {
+            List<Recluta> resultados;
+            if (divisionEspecialCombo.getValue() != null) {
+                resultados = crudService.listarReclutasPorDivisionEspecial(
+                        divisionEspecialCombo.getValue().getIdDivisionEspecial());
+            } else if (divisionCombo.getValue() != null) {
+                if (Boolean.TRUE.equals(soloAptosField.getValue())) {
+                    resultados = crudService.listarReclutasAptosPorDivision(
+                            divisionCombo.getValue().getIdDivision());
+                } else {
+                    resultados = crudService.listarReclutasPorDivision(
+                            divisionCombo.getValue().getIdDivision());
+                }
+            } else {
+                Notification.show("Seleccione una división o una división especial");
+                return;
+            }
+            gridReclutas.setItems(resultados);
+            Notification.show(resultados.isEmpty()
+                    ? "No se encontraron soldados adscritos"
+                    : "Soldados encontrados: " + resultados.size());
+        });
+        btnBuscar.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+
+        Button btnLimpiar = new Button("Limpiar", e -> {
+            limpiar(divisionCombo, divisionEspecialCombo, soloAptosField);
+            soloAptosField.setEnabled(true);
+            gridReclutas.setItems(List.of());
+        });
+
+        HorizontalLayout filtros = new HorizontalLayout(divisionCombo, divisionEspecialCombo, soloAptosField,
+                btnBuscar, btnLimpiar);
+        filtros.setWidthFull();
+        filtros.getStyle().set("flex-wrap", "wrap");
+
+        ComboBox<Division> divisionDetalleCombo = crearCombo("División", Division.class, this::etiquetaDivision);
+
+        Grid<AptoDivisionEspecial> gridAdscripciones = new Grid<>(AptoDivisionEspecial.class, false);
+        gridAdscripciones.addColumn(AptoDivisionEspecial::getIdApto).setHeader("ID").setAutoWidth(true);
+        gridAdscripciones.addColumn(a -> a.getIdRecluta() != null ? nombreCompleto(a.getIdRecluta()) : "")
+                .setHeader("Recluta").setAutoWidth(true);
+        gridAdscripciones.addColumn(a -> a.getIdRecluta() != null && a.getIdRecluta().getIdRama() != null
+                ? a.getIdRecluta().getIdRama().getNombre() : "")
+                .setHeader("Rama").setAutoWidth(true);
+        gridAdscripciones.addColumn(a -> a.getIdDivisionEspecial() != null
+                ? a.getIdDivisionEspecial().getNombre() : "")
+                .setHeader("División Especial").setAutoWidth(true);
+        gridAdscripciones.addColumn(a -> a.getIdDivisionEspecial() != null
+                && a.getIdDivisionEspecial().getIdDivision() != null
+                ? a.getIdDivisionEspecial().getIdDivision().getNombre() : "")
+                .setHeader("División").setAutoWidth(true);
+        gridAdscripciones.addColumn(a -> Boolean.TRUE.equals(a.getAptoServicio()) ? "Sí" : "No")
+                .setHeader("Apto Servicio").setAutoWidth(true);
+        gridAdscripciones.addColumn(AptoDivisionEspecial::getFechaEvaluacion)
+                .setHeader("Fecha Evaluación").setAutoWidth(true);
+        gridAdscripciones.addColumn(AptoDivisionEspecial::getPuntaje).setHeader("Puntaje").setAutoWidth(true);
+        gridAdscripciones.setWidthFull();
+
+        Button btnVerAdscripciones = new Button("Ver adscripciones", e -> {
+            Division division = divisionDetalleCombo.getValue();
+            if (division == null) {
+                Notification.show("Seleccione una división");
+                return;
+            }
+            List<AptoDivisionEspecial> adscripciones = crudService.listarAptosPorDivision(
+                    division.getIdDivision());
+            gridAdscripciones.setItems(adscripciones);
+            Notification.show(adscripciones.isEmpty()
+                    ? "No hay adscripciones para la división"
+                    : "Adscripciones encontradas: " + adscripciones.size());
+        });
+        btnVerAdscripciones.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+
+        Button btnLimpiarDetalle = new Button("Limpiar", e -> {
+            divisionDetalleCombo.clear();
+            gridAdscripciones.setItems(List.of());
+        });
+
+        HorizontalLayout filtrosDetalle = new HorizontalLayout(divisionDetalleCombo, btnVerAdscripciones,
+                btnLimpiarDetalle);
+        filtrosDetalle.setWidthFull();
+        filtrosDetalle.getStyle().set("flex-wrap", "wrap");
+
+        layout.add(new H3("Soldados adscritos a una división"), filtros, gridReclutas,
+                new H3("Adscripciones detalladas"), filtrosDetalle, gridAdscripciones);
         return layout;
     }
 
     // ==========================================
     // MÉTODOS AUXILIARES
     // ==========================================
-    private Long parseId(TextField field) {
+    private <T> ComboBox<T> crearCombo(String label, Class<T> clase, ItemLabelGenerator<T> etiqueta) {
+        ComboBox<T> combo = new ComboBox<>(label);
+        List<T> items = new ArrayList<>(crudService.listarTodos(clase));
+        ListDataProvider<T> provider = new ListDataProvider<>(items);
+        combo.setItems(provider);
+        combo.setItemLabelGenerator(etiqueta);
+        combo.setWidthFull();
+        comboRefrescos.add(() -> {
+            items.clear();
+            items.addAll(crudService.listarTodos(clase));
+            provider.refreshAll();
+        });
+        return combo;
+    }
+
+    private void recargarCombos() {
+        comboRefrescos.forEach(SerializableRunnable::run);
+    }
+
+    private <T> T buscar(Class<T> clase, TextField idField) {
+        Integer id = parseId(idField);
+        if (id == null) {
+            Notification.show("Ingrese un ID válido");
+            return null;
+        }
+        T entidad = crudService.buscarPorId(clase, id);
+        if (entidad == null) {
+            Notification.show("No encontrado");
+        }
+        return entidad;
+    }
+
+    private Integer parseId(TextField field) {
         try {
-            return Long.parseLong(field.getValue().trim());
+            return Integer.parseInt(field.getValue().trim());
         } catch (Exception e) {
             return null;
         }
     }
 
-    private Double parseDouble(String val) {
-        try {
-            return Double.parseDouble(val.trim());
-        } catch (Exception e) {
-            return 0.0;
-        }
+    private boolean vacio(String valor) {
+        return valor == null || valor.isBlank();
     }
 
-    private Integer parseInt(String val) {
-        try {
-            return Integer.parseInt(val.trim());
-        } catch (Exception e) {
-            return 0;
+    private String etiquetaRama(Rama rama) {
+        if (rama == null) {
+            return "";
         }
+        return rama.getNombre() != null ? rama.getNombre() : "Rama " + rama.getIdRama();
     }
 
-    private void limpiar(TextField... campos) {
-        for (TextField c : campos) {
-            c.clear();
+    private String etiquetaDivision(Division division) {
+        if (division == null) {
+            return "";
+        }
+        String nombre = division.getNombre() != null ? division.getNombre() : "División " + division.getIdDivision();
+        String rama = division.getIdRama() != null ? division.getIdRama().getNombre() : "sin rama";
+        return nombre + " (" + rama + ")";
+    }
+
+    private String etiquetaDivisionEspecial(DivisionEspecial divisionEspecial) {
+        if (divisionEspecial == null) {
+            return "";
+        }
+        String nombre = divisionEspecial.getNombre() != null ? divisionEspecial.getNombre()
+                : "División especial " + divisionEspecial.getIdDivisionEspecial();
+        String division = divisionEspecial.getIdDivision() != null ? divisionEspecial.getIdDivision().getNombre()
+                : "sin división";
+        return nombre + " (" + division + ")";
+    }
+
+    private String nombreCompleto(Recluta recluta) {
+        if (recluta == null) {
+            return "";
+        }
+        String nombre = recluta.getNombre() != null ? recluta.getNombre() : "";
+        String apellido = recluta.getApellido() != null ? recluta.getApellido() : "";
+        return (nombre + " " + apellido).trim();
+    }
+
+    private void limpiar(HasValue<?, ?>... campos) {
+        for (HasValue<?, ?> campo : campos) {
+            campo.clear();
         }
     }
 
