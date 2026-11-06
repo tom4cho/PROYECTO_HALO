@@ -22,6 +22,7 @@ import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -46,6 +47,7 @@ public class MainView extends VerticalLayout {
         setSizeFull();
         setPadding(true);
         setSpacing(true);
+        getStyle().set("background-color", "white");
 
         TabSheet tabs = new TabSheet();
         tabs.setWidthFull();
@@ -54,6 +56,7 @@ public class MainView extends VerticalLayout {
         tabs.add("Divisiones Especiales", crearSeccionDivisionesEspeciales());
         tabs.add("Reclutas", crearSeccionReclutas());
         tabs.add("Aptos División Especial", crearSeccionAptosDivisionEspecial());
+        tabs.add("Consultas", crearSeccionConsultas());
         tabs.addSelectedChangeListener(e -> recargarCombos());
 
         add(new H2("Sistema UNSC - CRUD"), tabs);
@@ -578,6 +581,127 @@ public class MainView extends VerticalLayout {
         });
 
         layout.add(form, crearAcciones(btnCrear, btnConsultar, btnActualizar, btnEliminar, btnLimpiar), grid);
+        return layout;
+    }
+
+    // ==========================================
+    // 6. CONSULTAS DE ADSCRIPCIONES
+    // ==========================================
+    private Component crearSeccionConsultas() {
+        VerticalLayout layout = new VerticalLayout();
+
+        ComboBox<Division> divisionCombo = crearCombo("División", Division.class, this::etiquetaDivision);
+        ComboBox<DivisionEspecial> divisionEspecialCombo = crearCombo("División Especial",
+                DivisionEspecial.class, this::etiquetaDivisionEspecial);
+        Checkbox soloAptosField = new Checkbox("Solo soldados aptos");
+
+        divisionCombo.addValueChangeListener(e -> {
+            if (e.getValue() != null) {
+                divisionEspecialCombo.clear();
+            }
+        });
+        divisionEspecialCombo.addValueChangeListener(e -> {
+            if (e.getValue() != null) {
+                divisionCombo.clear();
+            }
+            soloAptosField.setEnabled(e.getValue() == null);
+        });
+
+        Grid<Recluta> gridReclutas = new Grid<>(Recluta.class, false);
+        gridReclutas.addColumn(Recluta::getIdRecluta).setHeader("ID").setAutoWidth(true);
+        gridReclutas.addColumn(Recluta::getNombre).setHeader("Nombre").setAutoWidth(true);
+        gridReclutas.addColumn(Recluta::getApellido).setHeader("Apellido").setAutoWidth(true);
+        gridReclutas.addColumn(Recluta::getAltura).setHeader("Altura").setAutoWidth(true);
+        gridReclutas.addColumn(Recluta::getPeso).setHeader("Peso").setAutoWidth(true);
+        gridReclutas.addColumn(r -> r.getIdRama() != null ? r.getIdRama().getNombre() : "")
+                .setHeader("Rama").setAutoWidth(true);
+        gridReclutas.setWidthFull();
+
+        Button btnBuscar = new Button("Buscar soldados", e -> {
+            List<Recluta> resultados;
+            if (divisionEspecialCombo.getValue() != null) {
+                resultados = crudService.listarReclutasPorDivisionEspecial(
+                        divisionEspecialCombo.getValue().getIdDivisionEspecial());
+            } else if (divisionCombo.getValue() != null) {
+                if (Boolean.TRUE.equals(soloAptosField.getValue())) {
+                    resultados = crudService.listarReclutasAptosPorDivision(
+                            divisionCombo.getValue().getIdDivision());
+                } else {
+                    resultados = crudService.listarReclutasPorDivision(
+                            divisionCombo.getValue().getIdDivision());
+                }
+            } else {
+                Notification.show("Seleccione una división o una división especial");
+                return;
+            }
+            gridReclutas.setItems(resultados);
+            Notification.show(resultados.isEmpty()
+                    ? "No se encontraron soldados adscritos"
+                    : "Soldados encontrados: " + resultados.size());
+        });
+        btnBuscar.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+
+        Button btnLimpiar = new Button("Limpiar", e -> {
+            limpiar(divisionCombo, divisionEspecialCombo, soloAptosField);
+            soloAptosField.setEnabled(true);
+            gridReclutas.setItems(List.of());
+        });
+
+        HorizontalLayout filtros = new HorizontalLayout(divisionCombo, divisionEspecialCombo, soloAptosField,
+                btnBuscar, btnLimpiar);
+        filtros.setWidthFull();
+        filtros.getStyle().set("flex-wrap", "wrap");
+
+        ComboBox<Division> divisionDetalleCombo = crearCombo("División", Division.class, this::etiquetaDivision);
+
+        Grid<AptoDivisionEspecial> gridAdscripciones = new Grid<>(AptoDivisionEspecial.class, false);
+        gridAdscripciones.addColumn(AptoDivisionEspecial::getIdApto).setHeader("ID").setAutoWidth(true);
+        gridAdscripciones.addColumn(a -> a.getIdRecluta() != null ? nombreCompleto(a.getIdRecluta()) : "")
+                .setHeader("Recluta").setAutoWidth(true);
+        gridAdscripciones.addColumn(a -> a.getIdRecluta() != null && a.getIdRecluta().getIdRama() != null
+                ? a.getIdRecluta().getIdRama().getNombre() : "")
+                .setHeader("Rama").setAutoWidth(true);
+        gridAdscripciones.addColumn(a -> a.getIdDivisionEspecial() != null
+                ? a.getIdDivisionEspecial().getNombre() : "")
+                .setHeader("División Especial").setAutoWidth(true);
+        gridAdscripciones.addColumn(a -> a.getIdDivisionEspecial() != null
+                && a.getIdDivisionEspecial().getIdDivision() != null
+                ? a.getIdDivisionEspecial().getIdDivision().getNombre() : "")
+                .setHeader("División").setAutoWidth(true);
+        gridAdscripciones.addColumn(a -> Boolean.TRUE.equals(a.getAptoServicio()) ? "Sí" : "No")
+                .setHeader("Apto Servicio").setAutoWidth(true);
+        gridAdscripciones.addColumn(AptoDivisionEspecial::getFechaEvaluacion)
+                .setHeader("Fecha Evaluación").setAutoWidth(true);
+        gridAdscripciones.addColumn(AptoDivisionEspecial::getPuntaje).setHeader("Puntaje").setAutoWidth(true);
+        gridAdscripciones.setWidthFull();
+
+        Button btnVerAdscripciones = new Button("Ver adscripciones", e -> {
+            Division division = divisionDetalleCombo.getValue();
+            if (division == null) {
+                Notification.show("Seleccione una división");
+                return;
+            }
+            List<AptoDivisionEspecial> adscripciones = crudService.listarAptosPorDivision(
+                    division.getIdDivision());
+            gridAdscripciones.setItems(adscripciones);
+            Notification.show(adscripciones.isEmpty()
+                    ? "No hay adscripciones para la división"
+                    : "Adscripciones encontradas: " + adscripciones.size());
+        });
+        btnVerAdscripciones.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+
+        Button btnLimpiarDetalle = new Button("Limpiar", e -> {
+            divisionDetalleCombo.clear();
+            gridAdscripciones.setItems(List.of());
+        });
+
+        HorizontalLayout filtrosDetalle = new HorizontalLayout(divisionDetalleCombo, btnVerAdscripciones,
+                btnLimpiarDetalle);
+        filtrosDetalle.setWidthFull();
+        filtrosDetalle.getStyle().set("flex-wrap", "wrap");
+
+        layout.add(new H3("Soldados adscritos a una división"), filtros, gridReclutas,
+                new H3("Adscripciones detalladas"), filtrosDetalle, gridAdscripciones);
         return layout;
     }
 

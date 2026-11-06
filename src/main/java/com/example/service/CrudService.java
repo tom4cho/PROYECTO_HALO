@@ -2,6 +2,10 @@ package com.example.service;
 
 import java.io.Serializable;
 import java.util.List;
+
+import com.example.model.AptoDivisionEspecial;
+import com.example.model.Recluta;
+
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Service;
@@ -60,5 +64,93 @@ public class CrudService {
             return true;
         }
         return false;
+    }
+
+    // ==========================================
+    // Consultas de soldados adscritos
+    // ==========================================
+
+    /**
+     * Lista los soldados adscritos a cualquier división especial que pertenezca
+     * a la división indicada, sin importar el resultado de la aptitud.
+     */
+    @Transactional(readOnly = true)
+    public List<Recluta> listarReclutasPorDivision(Integer idDivision) {
+        String hql = """
+                SELECT DISTINCT r
+                FROM AptoDivisionEspecial a
+                JOIN a.idRecluta r
+                JOIN a.idDivisionEspecial de
+                JOIN de.idDivision d
+                JOIN FETCH r.idRama
+                WHERE d.idDivision = :idDivision
+                ORDER BY r.apellido, r.nombre
+                """;
+        return entityManager.createQuery(hql, Recluta.class)
+                .setParameter("idDivision", idDivision)
+                .getResultList();
+    }
+
+    /**
+     * Lista únicamente los soldados con aptitud aprobada (aptoServicio = true)
+     * adscritos a la división indicada.
+     */
+    @Transactional(readOnly = true)
+    public List<Recluta> listarReclutasAptosPorDivision(Integer idDivision) {
+        String hql = """
+                SELECT DISTINCT r
+                FROM AptoDivisionEspecial a
+                JOIN a.idRecluta r
+                JOIN a.idDivisionEspecial de
+                JOIN de.idDivision d
+                JOIN FETCH r.idRama
+                WHERE d.idDivision = :idDivision
+                  AND a.aptoServicio = :aptoServicio
+                ORDER BY r.apellido, r.nombre
+                """;
+        return entityManager.createQuery(hql, Recluta.class)
+                .setParameter("idDivision", idDivision)
+                .setParameter("aptoServicio", true)
+                .getResultList();
+    }
+
+    /**
+     * Lista los soldados adscritos a una división especial concreta.
+     */
+    @Transactional(readOnly = true)
+    public List<Recluta> listarReclutasPorDivisionEspecial(Integer idDivisionEspecial) {
+        String hql = """
+                SELECT DISTINCT r
+                FROM AptoDivisionEspecial a
+                JOIN a.idRecluta r
+                JOIN a.idDivisionEspecial de
+                JOIN FETCH r.idRama
+                WHERE de.idDivisionEspecial = :idDivisionEspecial
+                ORDER BY r.apellido, r.nombre
+                """;
+        return entityManager.createQuery(hql, Recluta.class)
+                .setParameter("idDivisionEspecial", idDivisionEspecial)
+                .getResultList();
+    }
+
+    /**
+     * Lista los registros de adscripción de una división con el recluta, su rama,
+     * la división especial y la división ya cargados para su uso en la vista.
+     */
+    @Transactional(readOnly = true)
+    public List<AptoDivisionEspecial> listarAptosPorDivision(Integer idDivision) {
+        String hql = """
+                SELECT a
+                FROM AptoDivisionEspecial a
+                JOIN FETCH a.idRecluta r
+                JOIN FETCH r.idRama
+                JOIN FETCH a.idDivisionEspecial de
+                JOIN FETCH de.idDivision d
+                WHERE d.idDivision = :idDivision
+                ORDER BY r.apellido, r.nombre
+                """;
+        return entityManager.createQuery(hql, AptoDivisionEspecial.class)
+                .setParameter("idDivision", idDivision)
+                .getResultList();
     }
 }
