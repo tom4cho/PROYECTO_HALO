@@ -1,1 +1,7 @@
-/* Add your styles here */
+vaadin-grid::part(cell) {
+    color: #232d3b !important; 
+}
+
+vaadin-grid vaadin-grid-cell-content {
+    color: #232d3b !important;
+}
