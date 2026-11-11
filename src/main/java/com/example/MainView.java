@@ -659,14 +659,17 @@ public class MainView extends VerticalLayout {
         gridAdscripciones.addColumn(a -> a.getIdRecluta() != null ? nombreCompleto(a.getIdRecluta()) : "")
                 .setHeader("Recluta").setAutoWidth(true);
         gridAdscripciones.addColumn(a -> a.getIdRecluta() != null && a.getIdRecluta().getIdRama() != null
-                ? a.getIdRecluta().getIdRama().getNombre() : "")
+                ? a.getIdRecluta().getIdRama().getNombre()
+                : "")
                 .setHeader("Rama").setAutoWidth(true);
         gridAdscripciones.addColumn(a -> a.getIdDivisionEspecial() != null
-                ? a.getIdDivisionEspecial().getNombre() : "")
+                ? a.getIdDivisionEspecial().getNombre()
+                : "")
                 .setHeader("División Especial").setAutoWidth(true);
         gridAdscripciones.addColumn(a -> a.getIdDivisionEspecial() != null
                 && a.getIdDivisionEspecial().getIdDivision() != null
-                ? a.getIdDivisionEspecial().getIdDivision().getNombre() : "")
+                        ? a.getIdDivisionEspecial().getIdDivision().getNombre()
+                        : "")
                 .setHeader("División").setAutoWidth(true);
         gridAdscripciones.addColumn(a -> Boolean.TRUE.equals(a.getAptoServicio()) ? "Sí" : "No")
                 .setHeader("Apto Servicio").setAutoWidth(true);

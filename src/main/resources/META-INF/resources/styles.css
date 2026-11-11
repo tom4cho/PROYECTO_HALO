@@ -1,1 +1,152 @@
-/* Add your styles here */
+:root {
+    --bg-dark: #414242;
+    --bg-card: #414242;
+    --accent-green: #3b5332;
+    --accent-glow: #4e733f;
+    --text-main: #d1d8cd;
+    --text-muted: #8c9a86;
+    --border-color: #273822;
+    --highlight: #70a25e;
+
+    --lumo-base-color: var(--bg-dark);
+    --lumo-tint: var(--bg-card);
+    --lumo-shade: var(--bg-dark);
+    --lumo-contrast: var(--text-main);
+    --lumo-contrast-rgb: 209, 216, 205;
+    --lumo-contrast-5pct: rgba(209, 216, 205, 0.05);
+    --lumo-contrast-10pct: rgba(209, 216, 205, 0.1);
+    --lumo-contrast-20pct: rgba(209, 216, 205, 0.2);
+    --lumo-contrast-30pct: rgba(209, 216, 205, 0.3);
+    --lumo-contrast-40pct: rgba(209, 216, 205, 0.4);
+    --lumo-contrast-50pct: rgba(209, 216, 205, 0.5);
+    --lumo-contrast-60pct: rgba(209, 216, 205, 0.6);
+    --lumo-contrast-70pct: rgba(209, 216, 205, 0.7);
+    --lumo-contrast-80pct: rgba(209, 216, 205, 0.8);
+    --lumo-contrast-90pct: rgba(209, 216, 205, 0.9);
+    --lumo-body-text-color: var(--text-main);
+    --lumo-secondary-text-color: var(--text-muted);
+    --lumo-primary-color: var(--accent-green);
+    --lumo-primary-color-50pct: rgba(78, 115, 63, 0.5);
+    --lumo-primary-color-10pct: rgba(78, 115, 63, 0.1);
+    --lumo-primary-text-color: var(--highlight);
+    --lumo-primary-contrast-color: var(--text-main);
+    --lumo-error-color: var(--accent-green);
+    --lumo-error-text-color: var(--highlight);
+    --lumo-error-contrast-color: var(--text-main);
+    color-scheme: dark;
+}
+
+html,
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+}
+
+vaadin-vertical-layout {
+    background-color: transparent !important;
+    color: var(--text-main);
+}
+
+h2,
+h3 {
+    color: var(--highlight);
+}
+
+vaadin-tab-sheet {
+    background-color: var(--bg-card);
+    color: var(--text-main);
+}
+
+vaadin-tab {
+    background-color: var(--bg-card);
+    color: var(--text-muted);
+}
+
+vaadin-tab[selected] {
+    color: var(--highlight);
+}
+
+vaadin-button {
+    background-color: var(--bg-card);
+    border-color: var(--border-color);
+    color: var(--text-main);
+}
+
+vaadin-button:hover {
+    background-color: var(--accent-green);
+    border-color: var(--highlight);
+    color: var(--text-main);
+}
+
+vaadin-text-field,
+vaadin-number-field,
+vaadin-big-decimal-field,
+vaadin-combo-box,
+vaadin-date-picker {
+    --lumo-primary-color: var(--accent-glow);
+    --lumo-primary-text-color: var(--highlight);
+}
+
+vaadin-text-field::part(label),
+vaadin-number-field::part(label),
+vaadin-big-decimal-field::part(label),
+vaadin-combo-box::part(label),
+vaadin-date-picker::part(label),
+vaadin-checkbox::part(label) {
+    color: var(--highlight);
+}
+
+vaadin-text-field::part(input-field),
+vaadin-number-field::part(input-field),
+vaadin-big-decimal-field::part(input-field),
+vaadin-combo-box::part(input-field),
+vaadin-date-picker::part(input-field) {
+    background-color: #0b100c;
+    border-color: var(--border-color);
+}
+
+vaadin-text-field::part(input),
+vaadin-number-field::part(input),
+vaadin-big-decimal-field::part(input),
+vaadin-combo-box::part(input),
+vaadin-date-picker::part(input) {
+    color: var(--text-main);
+    caret-color: var(--highlight);
+}
+
+vaadin-grid {
+    background-color: var(--bg-card);
+    color: var(--text-main);
+}
+
+vaadin-grid::part(cell) {
+    background-color: var(--bg-card);
+    border-color: var(--border-color);
+    color: var(--text-main);
+}
+
+vaadin-grid::part(header-cell) {
+    background-color: var(--accent-green);
+    border-color: var(--border-color);
+    color: var(--text-main);
+}
+
+vaadin-grid::part(selected-row) {
+    background-color: var(--accent-green);
+}
+
+vaadin-notification-card {
+    background-color: var(--bg-card);
+    border-color: var(--border-color);
+    color: var(--text-main);
+}
+
+vaadin-combo-box-overlay,
+vaadin-date-picker-overlay,
+vaadin-popover,
+vaadin-dialog-overlay {
+    --lumo-base-color: var(--bg-card);
+    --lumo-body-text-color: var(--text-main);
+    --lumo-secondary-text-color: var(--text-muted);
+    --lumo-primary-text-color: var(--highlight);
+}
