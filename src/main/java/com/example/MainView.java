@@ -76,6 +76,7 @@ public class MainView extends VerticalLayout {
         FormLayout form = new FormLayout(nombreField, descripcionField);
 
         Grid<Rama> grid = new Grid<>(Rama.class, false);
+        grid.addColumn(Rama::getIdRama).setHeader("ID").setAutoWidth(true);
         grid.addColumn(Rama::getNombre).setHeader("Nombre").setAutoWidth(true);
         grid.addColumn(Rama::getDescripcion).setHeader("Descripción").setAutoWidth(true);
 
@@ -160,6 +161,7 @@ public class MainView extends VerticalLayout {
         FormLayout form = new FormLayout(nombreField, descripcionField, ramaCombo);
 
         Grid<Division> grid = new Grid<>(Division.class, false);
+        grid.addColumn(Division::getIdDivision).setHeader("ID").setAutoWidth(true);
         grid.addColumn(Division::getNombre).setHeader("Nombre").setAutoWidth(true);
         grid.addColumn(Division::getDescripcion).setHeader("Descripción").setAutoWidth(true);
         grid.addColumn(d -> d.getIdRama() != null ? d.getIdRama().getNombre() : "")
@@ -256,6 +258,7 @@ public class MainView extends VerticalLayout {
         FormLayout form = new FormLayout(nombreField, descripcionField, divisionCombo);
 
         Grid<DivisionEspecial> grid = new Grid<>(DivisionEspecial.class, false);
+        grid.addColumn(DivisionEspecial::getIdDivisionEspecial).setHeader("ID").setAutoWidth(true);
         grid.addColumn(DivisionEspecial::getNombre).setHeader("Nombre").setAutoWidth(true);
         grid.addColumn(DivisionEspecial::getDescripcion).setHeader("Descripción").setAutoWidth(true);
         grid.addColumn(de -> de.getIdDivision() != null ? de.getIdDivision().getNombre() : "")
@@ -348,17 +351,18 @@ public class MainView extends VerticalLayout {
         VerticalLayout layout = new VerticalLayout();
         TextField nombreField = new TextField("Nombre");
         TextField apellidoField = new TextField("Apellido");
-        IntegerField alturaField = new IntegerField("Altura");
-        BigDecimalField pesoField = new BigDecimalField("Peso");
+        IntegerField alturaField = new IntegerField("Altura (cm)");
+        BigDecimalField pesoField = new BigDecimalField("Peso (kg)");
         ComboBox<Rama> ramaCombo = crearCombo("Rama", Rama.class, this::etiquetaRama);
 
         FormLayout form = new FormLayout(nombreField, apellidoField, alturaField, pesoField, ramaCombo);
 
         Grid<Recluta> grid = new Grid<>(Recluta.class, false);
+        grid.addColumn(Recluta::getIdRecluta).setHeader("ID").setAutoWidth(true);
         grid.addColumn(Recluta::getNombre).setHeader("Nombre").setAutoWidth(true);
         grid.addColumn(Recluta::getApellido).setHeader("Apellido").setAutoWidth(true);
-        grid.addColumn(Recluta::getAltura).setHeader("Altura").setAutoWidth(true);
-        grid.addColumn(Recluta::getPeso).setHeader("Peso").setAutoWidth(true);
+        grid.addColumn(Recluta::getAltura).setHeader("Altura (cm)").setAutoWidth(true);
+        grid.addColumn(Recluta::getPeso).setHeader("Peso (kg)").setAutoWidth(true);
         grid.addColumn(r -> r.getIdRama() != null ? r.getIdRama().getNombre() : "")
                 .setHeader("Rama").setAutoWidth(true);
         grid.addColumn(r -> r.getIdApto() != null ? "Sí" : "No")
@@ -391,6 +395,11 @@ public class MainView extends VerticalLayout {
                 Notification.show("Seleccione una rama");
                 return;
             }
+            String errorRecluta = validarRecluta(alturaField.getValue(), pesoField.getValue());
+            if (errorRecluta != null) {
+                Notification.show(errorRecluta);
+                return;
+            }
             Recluta r = new Recluta(nombreField.getValue(), apellidoField.getValue(), alturaField.getValue(),
                     pesoField.getValue(), ramaCombo.getValue(), null);
             crudService.guardar(r);
@@ -417,6 +426,11 @@ public class MainView extends VerticalLayout {
             }
             if (ramaCombo.getValue() == null) {
                 Notification.show("Seleccione una rama");
+                return;
+            }
+            String errorRecluta = validarRecluta(alturaField.getValue(), pesoField.getValue());
+            if (errorRecluta != null) {
+                Notification.show(errorRecluta);
                 return;
             }
             r.setNombre(nombreField.getValue());
@@ -472,6 +486,7 @@ public class MainView extends VerticalLayout {
                 fechaEvaluacionField, puntajeField);
 
         Grid<AptoDivisionEspecial> grid = new Grid<>(AptoDivisionEspecial.class, false);
+        grid.addColumn(AptoDivisionEspecial::getIdApto).setHeader("ID").setAutoWidth(true);
         grid.addColumn(a -> a.getIdRecluta() != null ? nombreCompleto(a.getIdRecluta()) : "")
                 .setHeader("Recluta").setAutoWidth(true);
         grid.addColumn(a -> a.getIdDivisionEspecial() != null ? a.getIdDivisionEspecial().getNombre() : "")
@@ -503,6 +518,11 @@ public class MainView extends VerticalLayout {
                 Notification.show("Seleccione una división especial");
                 return;
             }
+            String errorApto = validarApto(fechaEvaluacionField.getValue(), puntajeField.getValue());
+            if (errorApto != null) {
+                Notification.show(errorApto);
+                return;
+            }
             try {
                 AptoDivisionEspecial a = new AptoDivisionEspecial(reclutaCombo.getValue(),
                         divisionEspecialCombo.getValue(), aptoServicioField.getValue(),
@@ -531,6 +551,11 @@ public class MainView extends VerticalLayout {
             }
             if (divisionEspecialCombo.getValue() == null) {
                 Notification.show("Seleccione una división especial");
+                return;
+            }
+            String errorApto = validarApto(fechaEvaluacionField.getValue(), puntajeField.getValue());
+            if (errorApto != null) {
+                Notification.show(errorApto);
                 return;
             }
             a.setIdRecluta(reclutaCombo.getValue());
@@ -596,10 +621,11 @@ public class MainView extends VerticalLayout {
         });
 
         Grid<Recluta> gridReclutas = new Grid<>(Recluta.class, false);
+        gridReclutas.addColumn(Recluta::getIdRecluta).setHeader("ID").setAutoWidth(true);
         gridReclutas.addColumn(Recluta::getNombre).setHeader("Nombre").setAutoWidth(true);
         gridReclutas.addColumn(Recluta::getApellido).setHeader("Apellido").setAutoWidth(true);
-        gridReclutas.addColumn(Recluta::getAltura).setHeader("Altura").setAutoWidth(true);
-        gridReclutas.addColumn(Recluta::getPeso).setHeader("Peso").setAutoWidth(true);
+        gridReclutas.addColumn(Recluta::getAltura).setHeader("Altura (cm)").setAutoWidth(true);
+        gridReclutas.addColumn(Recluta::getPeso).setHeader("Peso (kg)").setAutoWidth(true);
         gridReclutas.addColumn(r -> r.getIdRama() != null ? r.getIdRama().getNombre() : "")
                 .setHeader("Rama").setAutoWidth(true);
         gridReclutas.setWidthFull();
@@ -642,6 +668,7 @@ public class MainView extends VerticalLayout {
         ComboBox<Division> divisionDetalleCombo = crearCombo("División", Division.class, this::etiquetaDivision);
 
         Grid<AptoDivisionEspecial> gridAdscripciones = new Grid<>(AptoDivisionEspecial.class, false);
+        gridAdscripciones.addColumn(AptoDivisionEspecial::getIdApto).setHeader("ID").setAutoWidth(true);
         gridAdscripciones.addColumn(a -> a.getIdRecluta() != null ? nombreCompleto(a.getIdRecluta()) : "")
                 .setHeader("Recluta").setAutoWidth(true);
         gridAdscripciones.addColumn(a -> a.getIdRecluta() != null && a.getIdRecluta().getIdRama() != null
@@ -716,6 +743,31 @@ public class MainView extends VerticalLayout {
         comboRefrescos.forEach(SerializableRunnable::run);
     }
 
+    /** Devuelve un mensaje de error, o null si los datos son válidos. */
+    private String validarRecluta(Integer altura, BigDecimal peso) {
+        if (altura == null || altura < 100 || altura > 250) {
+            return "La altura debe estar entre 100 y 250 cm";
+        }
+        if (peso == null || peso.compareTo(new BigDecimal("30")) < 0 || peso.compareTo(new BigDecimal("300")) > 0) {
+            return "El peso debe estar entre 30 y 300 kg";
+        }
+        return null;
+    }
+
+    /** Devuelve un mensaje de error, o null si los datos son válidos. */
+    private String validarApto(LocalDate fecha, Integer puntaje) {
+        if (fecha == null) {
+            return "Ingrese la fecha de evaluación";
+        }
+        if (fecha.isAfter(LocalDate.now())) {
+            return "La fecha de evaluación no puede ser futura";
+        }
+        if (puntaje == null || puntaje < 0 || puntaje > 100) {
+            return "El puntaje debe estar entre 0 y 100";
+        }
+        return null;
+    }
+
     private boolean vacio(String valor) {
         return valor == null || valor.isBlank();
     }
@@ -767,4 +819,4 @@ public class MainView extends VerticalLayout {
         layout.getStyle().set("flex-wrap", "wrap");
         return layout;
     }
-}   
+}
