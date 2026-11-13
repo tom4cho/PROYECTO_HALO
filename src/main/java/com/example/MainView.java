@@ -42,6 +42,9 @@ public class MainView extends VerticalLayout {
     private final CrudService crudService;
     private final List<SerializableRunnable> comboRefrescos = new ArrayList<>();
 
+    private static final String MSG_SIN_SELECCION = "Seleccione un registro de la tabla";
+    private static final String MSG_NO_ELIMINABLE = "No se puede eliminar: tiene registros asociados";
+
     public MainView(CrudService crudService) {
         this.crudService = crudService;
         setSizeFull();
@@ -67,14 +70,12 @@ public class MainView extends VerticalLayout {
     // ==========================================
     private Component crearSeccionRamas() {
         VerticalLayout layout = new VerticalLayout();
-        TextField idField = new TextField("ID");
         TextField nombreField = new TextField("Nombre");
         TextField descripcionField = new TextField("Descripción");
 
-        FormLayout form = new FormLayout(idField, nombreField, descripcionField);
+        FormLayout form = new FormLayout(nombreField, descripcionField);
 
         Grid<Rama> grid = new Grid<>(Rama.class, false);
-        grid.addColumn(Rama::getIdRama).setHeader("ID").setAutoWidth(true);
         grid.addColumn(Rama::getNombre).setHeader("Nombre").setAutoWidth(true);
         grid.addColumn(Rama::getDescripcion).setHeader("Descripción").setAutoWidth(true);
 
@@ -84,7 +85,6 @@ public class MainView extends VerticalLayout {
         grid.asSingleSelect().addValueChangeListener(e -> {
             Rama r = e.getValue();
             if (r != null) {
-                idField.setValue(r.getIdRama() != null ? r.getIdRama().toString() : "");
                 nombreField.setValue(r.getNombre() != null ? r.getNombre() : "");
                 descripcionField.setValue(r.getDescripcion() != null ? r.getDescripcion() : "");
             }
@@ -98,54 +98,53 @@ public class MainView extends VerticalLayout {
             Rama r = new Rama(nombreField.getValue(), descripcionField.getValue());
             crudService.guardar(r);
             refrescar.run();
-            idField.setValue(r.getIdRama() != null ? r.getIdRama().toString() : "");
-            Notification.show("Rama guardada con ID: " + r.getIdRama());
+            limpiar(nombreField, descripcionField);
+            grid.asSingleSelect().clear();
+            Notification.show("Rama guardada");
         });
         btnCrear.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
-        Button btnConsultar = new Button("Consultar", e -> {
-            Rama r = buscar(Rama.class, idField);
-            if (r != null) {
-                grid.asSingleSelect().setValue(r);
-                Notification.show("Encontrada: " + r.getNombre());
-            }
-        });
-
         Button btnActualizar = new Button("Actualizar", e -> {
-            Rama r = buscar(Rama.class, idField);
-            if (r != null) {
-                if (vacio(nombreField.getValue())) {
-                    Notification.show("Ingrese el nombre de la rama");
-                    return;
-                }
-                r.setNombre(nombreField.getValue());
-                r.setDescripcion(descripcionField.getValue());
-                crudService.actualizar(r);
-                refrescar.run();
-                Notification.show("Rama actualizada");
+            Rama r = grid.asSingleSelect().getValue();
+            if (r == null) {
+                Notification.show(MSG_SIN_SELECCION);
+                return;
             }
+            if (vacio(nombreField.getValue())) {
+                Notification.show("Ingrese el nombre de la rama");
+                return;
+            }
+            r.setNombre(nombreField.getValue());
+            r.setDescripcion(descripcionField.getValue());
+            crudService.actualizar(r);
+            refrescar.run();
+            Notification.show("Rama actualizada");
         });
 
         Button btnEliminar = new Button("Eliminar", e -> {
-            Integer id = parseId(idField);
-            if (id == null) {
-                Notification.show("Ingrese un ID válido");
+            Rama r = grid.asSingleSelect().getValue();
+            if (r == null) {
+                Notification.show(MSG_SIN_SELECCION);
                 return;
             }
-            boolean eliminado = crudService.eliminar(Rama.class, id);
-            refrescar.run();
-            limpiar(idField, nombreField, descripcionField);
-            grid.asSingleSelect().clear();
-            Notification.show(eliminado ? "Rama eliminada" : "Rama no encontrada");
+            try {
+                crudService.eliminar(Rama.class, r.getIdRama());
+                refrescar.run();
+                limpiar(nombreField, descripcionField);
+                grid.asSingleSelect().clear();
+                Notification.show("Rama eliminada");
+            } catch (Exception ex) {
+                Notification.show(MSG_NO_ELIMINABLE);
+            }
         });
         btnEliminar.addThemeVariants(ButtonVariant.LUMO_ERROR);
 
         Button btnLimpiar = new Button("Limpiar", e -> {
-            limpiar(idField, nombreField, descripcionField);
+            limpiar(nombreField, descripcionField);
             grid.asSingleSelect().clear();
         });
 
-        layout.add(form, crearAcciones(btnCrear, btnConsultar, btnActualizar, btnEliminar, btnLimpiar), grid);
+        layout.add(form, crearAcciones(btnCrear, btnActualizar, btnEliminar, btnLimpiar), grid);
         return layout;
     }
 
@@ -154,15 +153,13 @@ public class MainView extends VerticalLayout {
     // ==========================================
     private Component crearSeccionDivisiones() {
         VerticalLayout layout = new VerticalLayout();
-        TextField idField = new TextField("ID");
         TextField nombreField = new TextField("Nombre");
         TextField descripcionField = new TextField("Descripción");
         ComboBox<Rama> ramaCombo = crearCombo("Rama", Rama.class, this::etiquetaRama);
 
-        FormLayout form = new FormLayout(idField, nombreField, descripcionField, ramaCombo);
+        FormLayout form = new FormLayout(nombreField, descripcionField, ramaCombo);
 
         Grid<Division> grid = new Grid<>(Division.class, false);
-        grid.addColumn(Division::getIdDivision).setHeader("ID").setAutoWidth(true);
         grid.addColumn(Division::getNombre).setHeader("Nombre").setAutoWidth(true);
         grid.addColumn(Division::getDescripcion).setHeader("Descripción").setAutoWidth(true);
         grid.addColumn(d -> d.getIdRama() != null ? d.getIdRama().getNombre() : "")
@@ -174,7 +171,6 @@ public class MainView extends VerticalLayout {
         grid.asSingleSelect().addValueChangeListener(e -> {
             Division d = e.getValue();
             if (d != null) {
-                idField.setValue(d.getIdDivision() != null ? d.getIdDivision().toString() : "");
                 nombreField.setValue(d.getNombre() != null ? d.getNombre() : "");
                 descripcionField.setValue(d.getDescripcion() != null ? d.getDescripcion() : "");
                 ramaCombo.setValue(d.getIdRama());
@@ -193,59 +189,58 @@ public class MainView extends VerticalLayout {
             Division d = new Division(nombreField.getValue(), descripcionField.getValue(), ramaCombo.getValue());
             crudService.guardar(d);
             refrescar.run();
-            idField.setValue(d.getIdDivision() != null ? d.getIdDivision().toString() : "");
-            Notification.show("División guardada con ID: " + d.getIdDivision());
+            limpiar(nombreField, descripcionField, ramaCombo);
+            grid.asSingleSelect().clear();
+            Notification.show("División guardada");
         });
         btnCrear.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
-        Button btnConsultar = new Button("Consultar", e -> {
-            Division d = buscar(Division.class, idField);
-            if (d != null) {
-                grid.asSingleSelect().setValue(d);
-                Notification.show("Encontrada: " + d.getNombre());
-            }
-        });
-
         Button btnActualizar = new Button("Actualizar", e -> {
-            Division d = buscar(Division.class, idField);
-            if (d != null) {
-                if (vacio(nombreField.getValue())) {
-                    Notification.show("Ingrese el nombre de la división");
-                    return;
-                }
-                if (ramaCombo.getValue() == null) {
-                    Notification.show("Seleccione una rama");
-                    return;
-                }
-                d.setNombre(nombreField.getValue());
-                d.setDescripcion(descripcionField.getValue());
-                d.setIdRama(ramaCombo.getValue());
-                crudService.actualizar(d);
-                refrescar.run();
-                Notification.show("División actualizada");
+            Division d = grid.asSingleSelect().getValue();
+            if (d == null) {
+                Notification.show(MSG_SIN_SELECCION);
+                return;
             }
+            if (vacio(nombreField.getValue())) {
+                Notification.show("Ingrese el nombre de la división");
+                return;
+            }
+            if (ramaCombo.getValue() == null) {
+                Notification.show("Seleccione una rama");
+                return;
+            }
+            d.setNombre(nombreField.getValue());
+            d.setDescripcion(descripcionField.getValue());
+            d.setIdRama(ramaCombo.getValue());
+            crudService.actualizar(d);
+            refrescar.run();
+            Notification.show("División actualizada");
         });
 
         Button btnEliminar = new Button("Eliminar", e -> {
-            Integer id = parseId(idField);
-            if (id == null) {
-                Notification.show("Ingrese un ID válido");
+            Division d = grid.asSingleSelect().getValue();
+            if (d == null) {
+                Notification.show(MSG_SIN_SELECCION);
                 return;
             }
-            boolean eliminado = crudService.eliminar(Division.class, id);
-            refrescar.run();
-            limpiar(idField, nombreField, descripcionField, ramaCombo);
-            grid.asSingleSelect().clear();
-            Notification.show(eliminado ? "División eliminada" : "División no encontrada");
+            try {
+                crudService.eliminar(Division.class, d.getIdDivision());
+                refrescar.run();
+                limpiar(nombreField, descripcionField, ramaCombo);
+                grid.asSingleSelect().clear();
+                Notification.show("División eliminada");
+            } catch (Exception ex) {
+                Notification.show(MSG_NO_ELIMINABLE);
+            }
         });
         btnEliminar.addThemeVariants(ButtonVariant.LUMO_ERROR);
 
         Button btnLimpiar = new Button("Limpiar", e -> {
-            limpiar(idField, nombreField, descripcionField, ramaCombo);
+            limpiar(nombreField, descripcionField, ramaCombo);
             grid.asSingleSelect().clear();
         });
 
-        layout.add(form, crearAcciones(btnCrear, btnConsultar, btnActualizar, btnEliminar, btnLimpiar), grid);
+        layout.add(form, crearAcciones(btnCrear, btnActualizar, btnEliminar, btnLimpiar), grid);
         return layout;
     }
 
@@ -254,15 +249,13 @@ public class MainView extends VerticalLayout {
     // ==========================================
     private Component crearSeccionDivisionesEspeciales() {
         VerticalLayout layout = new VerticalLayout();
-        TextField idField = new TextField("ID");
         TextField nombreField = new TextField("Nombre");
         TextField descripcionField = new TextField("Descripción");
         ComboBox<Division> divisionCombo = crearCombo("División", Division.class, this::etiquetaDivision);
 
-        FormLayout form = new FormLayout(idField, nombreField, descripcionField, divisionCombo);
+        FormLayout form = new FormLayout(nombreField, descripcionField, divisionCombo);
 
         Grid<DivisionEspecial> grid = new Grid<>(DivisionEspecial.class, false);
-        grid.addColumn(DivisionEspecial::getIdDivisionEspecial).setHeader("ID").setAutoWidth(true);
         grid.addColumn(DivisionEspecial::getNombre).setHeader("Nombre").setAutoWidth(true);
         grid.addColumn(DivisionEspecial::getDescripcion).setHeader("Descripción").setAutoWidth(true);
         grid.addColumn(de -> de.getIdDivision() != null ? de.getIdDivision().getNombre() : "")
@@ -274,7 +267,6 @@ public class MainView extends VerticalLayout {
         grid.asSingleSelect().addValueChangeListener(e -> {
             DivisionEspecial de = e.getValue();
             if (de != null) {
-                idField.setValue(de.getIdDivisionEspecial() != null ? de.getIdDivisionEspecial().toString() : "");
                 nombreField.setValue(de.getNombre() != null ? de.getNombre() : "");
                 descripcionField.setValue(de.getDescripcion() != null ? de.getDescripcion() : "");
                 divisionCombo.setValue(de.getIdDivision());
@@ -294,59 +286,58 @@ public class MainView extends VerticalLayout {
                     divisionCombo.getValue());
             crudService.guardar(de);
             refrescar.run();
-            idField.setValue(de.getIdDivisionEspecial() != null ? de.getIdDivisionEspecial().toString() : "");
-            Notification.show("División especial guardada con ID: " + de.getIdDivisionEspecial());
+            limpiar(nombreField, descripcionField, divisionCombo);
+            grid.asSingleSelect().clear();
+            Notification.show("División especial guardada");
         });
         btnCrear.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
-        Button btnConsultar = new Button("Consultar", e -> {
-            DivisionEspecial de = buscar(DivisionEspecial.class, idField);
-            if (de != null) {
-                grid.asSingleSelect().setValue(de);
-                Notification.show("Encontrada: " + de.getNombre());
-            }
-        });
-
         Button btnActualizar = new Button("Actualizar", e -> {
-            DivisionEspecial de = buscar(DivisionEspecial.class, idField);
-            if (de != null) {
-                if (vacio(nombreField.getValue())) {
-                    Notification.show("Ingrese el nombre de la división especial");
-                    return;
-                }
-                if (divisionCombo.getValue() == null) {
-                    Notification.show("Seleccione una división");
-                    return;
-                }
-                de.setNombre(nombreField.getValue());
-                de.setDescripcion(descripcionField.getValue());
-                de.setIdDivision(divisionCombo.getValue());
-                crudService.actualizar(de);
-                refrescar.run();
-                Notification.show("División especial actualizada");
+            DivisionEspecial de = grid.asSingleSelect().getValue();
+            if (de == null) {
+                Notification.show(MSG_SIN_SELECCION);
+                return;
             }
+            if (vacio(nombreField.getValue())) {
+                Notification.show("Ingrese el nombre de la división especial");
+                return;
+            }
+            if (divisionCombo.getValue() == null) {
+                Notification.show("Seleccione una división");
+                return;
+            }
+            de.setNombre(nombreField.getValue());
+            de.setDescripcion(descripcionField.getValue());
+            de.setIdDivision(divisionCombo.getValue());
+            crudService.actualizar(de);
+            refrescar.run();
+            Notification.show("División especial actualizada");
         });
 
         Button btnEliminar = new Button("Eliminar", e -> {
-            Integer id = parseId(idField);
-            if (id == null) {
-                Notification.show("Ingrese un ID válido");
+            DivisionEspecial de = grid.asSingleSelect().getValue();
+            if (de == null) {
+                Notification.show(MSG_SIN_SELECCION);
                 return;
             }
-            boolean eliminado = crudService.eliminar(DivisionEspecial.class, id);
-            refrescar.run();
-            limpiar(idField, nombreField, descripcionField, divisionCombo);
-            grid.asSingleSelect().clear();
-            Notification.show(eliminado ? "División especial eliminada" : "División especial no encontrada");
+            try {
+                crudService.eliminar(DivisionEspecial.class, de.getIdDivisionEspecial());
+                refrescar.run();
+                limpiar(nombreField, descripcionField, divisionCombo);
+                grid.asSingleSelect().clear();
+                Notification.show("División especial eliminada");
+            } catch (Exception ex) {
+                Notification.show(MSG_NO_ELIMINABLE);
+            }
         });
         btnEliminar.addThemeVariants(ButtonVariant.LUMO_ERROR);
 
         Button btnLimpiar = new Button("Limpiar", e -> {
-            limpiar(idField, nombreField, descripcionField, divisionCombo);
+            limpiar(nombreField, descripcionField, divisionCombo);
             grid.asSingleSelect().clear();
         });
 
-        layout.add(form, crearAcciones(btnCrear, btnConsultar, btnActualizar, btnEliminar, btnLimpiar), grid);
+        layout.add(form, crearAcciones(btnCrear, btnActualizar, btnEliminar, btnLimpiar), grid);
         return layout;
     }
 
@@ -355,24 +346,22 @@ public class MainView extends VerticalLayout {
     // ==========================================
     private Component crearSeccionReclutas() {
         VerticalLayout layout = new VerticalLayout();
-        TextField idField = new TextField("ID");
         TextField nombreField = new TextField("Nombre");
         TextField apellidoField = new TextField("Apellido");
         IntegerField alturaField = new IntegerField("Altura");
         BigDecimalField pesoField = new BigDecimalField("Peso");
         ComboBox<Rama> ramaCombo = crearCombo("Rama", Rama.class, this::etiquetaRama);
 
-        FormLayout form = new FormLayout(idField, nombreField, apellidoField, alturaField, pesoField, ramaCombo);
+        FormLayout form = new FormLayout(nombreField, apellidoField, alturaField, pesoField, ramaCombo);
 
         Grid<Recluta> grid = new Grid<>(Recluta.class, false);
-        grid.addColumn(Recluta::getIdRecluta).setHeader("ID").setAutoWidth(true);
         grid.addColumn(Recluta::getNombre).setHeader("Nombre").setAutoWidth(true);
         grid.addColumn(Recluta::getApellido).setHeader("Apellido").setAutoWidth(true);
         grid.addColumn(Recluta::getAltura).setHeader("Altura").setAutoWidth(true);
         grid.addColumn(Recluta::getPeso).setHeader("Peso").setAutoWidth(true);
         grid.addColumn(r -> r.getIdRama() != null ? r.getIdRama().getNombre() : "")
                 .setHeader("Rama").setAutoWidth(true);
-        grid.addColumn(r -> r.getIdApto() != null ? r.getIdApto().getIdApto().toString() : "")
+        grid.addColumn(r -> r.getIdApto() != null ? "Sí" : "No")
                 .setHeader("Apto").setAutoWidth(true);
 
         Runnable refrescar = () -> grid.setItems(crudService.listarTodos(Recluta.class));
@@ -381,7 +370,6 @@ public class MainView extends VerticalLayout {
         grid.asSingleSelect().addValueChangeListener(e -> {
             Recluta r = e.getValue();
             if (r != null) {
-                idField.setValue(r.getIdRecluta() != null ? r.getIdRecluta().toString() : "");
                 nombreField.setValue(r.getNombre() != null ? r.getNombre() : "");
                 apellidoField.setValue(r.getApellido() != null ? r.getApellido() : "");
                 alturaField.setValue(r.getAltura());
@@ -407,65 +395,64 @@ public class MainView extends VerticalLayout {
                     pesoField.getValue(), ramaCombo.getValue(), null);
             crudService.guardar(r);
             refrescar.run();
-            idField.setValue(r.getIdRecluta() != null ? r.getIdRecluta().toString() : "");
-            Notification.show("Recluta guardado con ID: " + r.getIdRecluta());
+            limpiar(nombreField, apellidoField, alturaField, pesoField, ramaCombo);
+            grid.asSingleSelect().clear();
+            Notification.show("Recluta guardado");
         });
         btnCrear.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
-        Button btnConsultar = new Button("Consultar", e -> {
-            Recluta r = buscar(Recluta.class, idField);
-            if (r != null) {
-                grid.asSingleSelect().setValue(r);
-                Notification.show("Encontrado: " + nombreCompleto(r));
-            }
-        });
-
         Button btnActualizar = new Button("Actualizar", e -> {
-            Recluta r = buscar(Recluta.class, idField);
-            if (r != null) {
-                if (vacio(nombreField.getValue())) {
-                    Notification.show("Ingrese el nombre del recluta");
-                    return;
-                }
-                if (vacio(apellidoField.getValue())) {
-                    Notification.show("Ingrese el apellido del recluta");
-                    return;
-                }
-                if (ramaCombo.getValue() == null) {
-                    Notification.show("Seleccione una rama");
-                    return;
-                }
-                r.setNombre(nombreField.getValue());
-                r.setApellido(apellidoField.getValue());
-                r.setAltura(alturaField.getValue());
-                r.setPeso(pesoField.getValue());
-                r.setIdRama(ramaCombo.getValue());
-                crudService.actualizar(r);
-                refrescar.run();
-                Notification.show("Recluta actualizado");
+            Recluta r = grid.asSingleSelect().getValue();
+            if (r == null) {
+                Notification.show(MSG_SIN_SELECCION);
+                return;
             }
+            if (vacio(nombreField.getValue())) {
+                Notification.show("Ingrese el nombre del recluta");
+                return;
+            }
+            if (vacio(apellidoField.getValue())) {
+                Notification.show("Ingrese el apellido del recluta");
+                return;
+            }
+            if (ramaCombo.getValue() == null) {
+                Notification.show("Seleccione una rama");
+                return;
+            }
+            r.setNombre(nombreField.getValue());
+            r.setApellido(apellidoField.getValue());
+            r.setAltura(alturaField.getValue());
+            r.setPeso(pesoField.getValue());
+            r.setIdRama(ramaCombo.getValue());
+            crudService.actualizar(r);
+            refrescar.run();
+            Notification.show("Recluta actualizado");
         });
 
         Button btnEliminar = new Button("Eliminar", e -> {
-            Integer id = parseId(idField);
-            if (id == null) {
-                Notification.show("Ingrese un ID válido");
+            Recluta r = grid.asSingleSelect().getValue();
+            if (r == null) {
+                Notification.show(MSG_SIN_SELECCION);
                 return;
             }
-            boolean eliminado = crudService.eliminar(Recluta.class, id);
-            refrescar.run();
-            limpiar(idField, nombreField, apellidoField, alturaField, pesoField, ramaCombo);
-            grid.asSingleSelect().clear();
-            Notification.show(eliminado ? "Recluta eliminado" : "Recluta no encontrado");
+            try {
+                crudService.eliminar(Recluta.class, r.getIdRecluta());
+                refrescar.run();
+                limpiar(nombreField, apellidoField, alturaField, pesoField, ramaCombo);
+                grid.asSingleSelect().clear();
+                Notification.show("Recluta eliminado");
+            } catch (Exception ex) {
+                Notification.show(MSG_NO_ELIMINABLE);
+            }
         });
         btnEliminar.addThemeVariants(ButtonVariant.LUMO_ERROR);
 
         Button btnLimpiar = new Button("Limpiar", e -> {
-            limpiar(idField, nombreField, apellidoField, alturaField, pesoField, ramaCombo);
+            limpiar(nombreField, apellidoField, alturaField, pesoField, ramaCombo);
             grid.asSingleSelect().clear();
         });
 
-        layout.add(form, crearAcciones(btnCrear, btnConsultar, btnActualizar, btnEliminar, btnLimpiar), grid);
+        layout.add(form, crearAcciones(btnCrear, btnActualizar, btnEliminar, btnLimpiar), grid);
         return layout;
     }
 
@@ -474,7 +461,6 @@ public class MainView extends VerticalLayout {
     // ==========================================
     private Component crearSeccionAptosDivisionEspecial() {
         VerticalLayout layout = new VerticalLayout();
-        TextField idField = new TextField("ID");
         ComboBox<Recluta> reclutaCombo = crearCombo("Recluta", Recluta.class, this::nombreCompleto);
         ComboBox<DivisionEspecial> divisionEspecialCombo = crearCombo("División Especial", DivisionEspecial.class,
                 this::etiquetaDivisionEspecial);
@@ -482,11 +468,10 @@ public class MainView extends VerticalLayout {
         DatePicker fechaEvaluacionField = new DatePicker("Fecha de evaluación");
         IntegerField puntajeField = new IntegerField("Puntaje");
 
-        FormLayout form = new FormLayout(idField, reclutaCombo, divisionEspecialCombo, aptoServicioField,
+        FormLayout form = new FormLayout(reclutaCombo, divisionEspecialCombo, aptoServicioField,
                 fechaEvaluacionField, puntajeField);
 
         Grid<AptoDivisionEspecial> grid = new Grid<>(AptoDivisionEspecial.class, false);
-        grid.addColumn(AptoDivisionEspecial::getIdApto).setHeader("ID").setAutoWidth(true);
         grid.addColumn(a -> a.getIdRecluta() != null ? nombreCompleto(a.getIdRecluta()) : "")
                 .setHeader("Recluta").setAutoWidth(true);
         grid.addColumn(a -> a.getIdDivisionEspecial() != null ? a.getIdDivisionEspecial().getNombre() : "")
@@ -501,7 +486,6 @@ public class MainView extends VerticalLayout {
         grid.asSingleSelect().addValueChangeListener(e -> {
             AptoDivisionEspecial a = e.getValue();
             if (a != null) {
-                idField.setValue(a.getIdApto() != null ? a.getIdApto().toString() : "");
                 reclutaCombo.setValue(a.getIdRecluta());
                 divisionEspecialCombo.setValue(a.getIdDivisionEspecial());
                 aptoServicioField.setValue(Boolean.TRUE.equals(a.getAptoServicio()));
@@ -519,68 +503,72 @@ public class MainView extends VerticalLayout {
                 Notification.show("Seleccione una división especial");
                 return;
             }
-            AptoDivisionEspecial a = new AptoDivisionEspecial(reclutaCombo.getValue(),
-                    divisionEspecialCombo.getValue(), aptoServicioField.getValue(),
-                    fechaEvaluacionField.getValue(), puntajeField.getValue());
-            crudService.guardar(a);
-            refrescar.run();
-            idField.setValue(a.getIdApto() != null ? a.getIdApto().toString() : "");
-            Notification.show("Apto guardado con ID: " + a.getIdApto());
+            try {
+                AptoDivisionEspecial a = new AptoDivisionEspecial(reclutaCombo.getValue(),
+                        divisionEspecialCombo.getValue(), aptoServicioField.getValue(),
+                        fechaEvaluacionField.getValue(), puntajeField.getValue());
+                crudService.guardar(a);
+                refrescar.run();
+                limpiar(reclutaCombo, divisionEspecialCombo, aptoServicioField, fechaEvaluacionField,
+                        puntajeField);
+                grid.asSingleSelect().clear();
+                Notification.show("Apto guardado");
+            } catch (Exception ex) {
+                Notification.show("No se pudo guardar: el recluta ya tiene un apto asignado");
+            }
         });
         btnCrear.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
-        Button btnConsultar = new Button("Consultar", e -> {
-            AptoDivisionEspecial a = buscar(AptoDivisionEspecial.class, idField);
-            if (a != null) {
-                grid.asSingleSelect().setValue(a);
-                Notification.show("Encontrado: " + a.getIdApto());
-            }
-        });
-
         Button btnActualizar = new Button("Actualizar", e -> {
-            AptoDivisionEspecial a = buscar(AptoDivisionEspecial.class, idField);
-            if (a != null) {
-                if (reclutaCombo.getValue() == null) {
-                    Notification.show("Seleccione un recluta");
-                    return;
-                }
-                if (divisionEspecialCombo.getValue() == null) {
-                    Notification.show("Seleccione una división especial");
-                    return;
-                }
-                a.setIdRecluta(reclutaCombo.getValue());
-                a.setIdDivisionEspecial(divisionEspecialCombo.getValue());
-                a.setAptoServicio(aptoServicioField.getValue());
-                a.setFechaEvaluacion(fechaEvaluacionField.getValue());
-                a.setPuntaje(puntajeField.getValue());
-                crudService.actualizar(a);
-                refrescar.run();
-                Notification.show("Apto actualizado");
+            AptoDivisionEspecial a = grid.asSingleSelect().getValue();
+            if (a == null) {
+                Notification.show(MSG_SIN_SELECCION);
+                return;
             }
+            if (reclutaCombo.getValue() == null) {
+                Notification.show("Seleccione un recluta");
+                return;
+            }
+            if (divisionEspecialCombo.getValue() == null) {
+                Notification.show("Seleccione una división especial");
+                return;
+            }
+            a.setIdRecluta(reclutaCombo.getValue());
+            a.setIdDivisionEspecial(divisionEspecialCombo.getValue());
+            a.setAptoServicio(aptoServicioField.getValue());
+            a.setFechaEvaluacion(fechaEvaluacionField.getValue());
+            a.setPuntaje(puntajeField.getValue());
+            crudService.actualizar(a);
+            refrescar.run();
+            Notification.show("Apto actualizado");
         });
 
         Button btnEliminar = new Button("Eliminar", e -> {
-            Integer id = parseId(idField);
-            if (id == null) {
-                Notification.show("Ingrese un ID válido");
+            AptoDivisionEspecial a = grid.asSingleSelect().getValue();
+            if (a == null) {
+                Notification.show(MSG_SIN_SELECCION);
                 return;
             }
-            boolean eliminado = crudService.eliminar(AptoDivisionEspecial.class, id);
-            refrescar.run();
-            limpiar(idField, reclutaCombo, divisionEspecialCombo, aptoServicioField, fechaEvaluacionField,
-                    puntajeField);
-            grid.asSingleSelect().clear();
-            Notification.show(eliminado ? "Apto eliminado" : "Apto no encontrado");
+            try {
+                crudService.eliminar(AptoDivisionEspecial.class, a.getIdApto());
+                refrescar.run();
+                limpiar(reclutaCombo, divisionEspecialCombo, aptoServicioField, fechaEvaluacionField,
+                        puntajeField);
+                grid.asSingleSelect().clear();
+                Notification.show("Apto eliminado");
+            } catch (Exception ex) {
+                Notification.show(MSG_NO_ELIMINABLE);
+            }
         });
         btnEliminar.addThemeVariants(ButtonVariant.LUMO_ERROR);
 
         Button btnLimpiar = new Button("Limpiar", e -> {
-            limpiar(idField, reclutaCombo, divisionEspecialCombo, aptoServicioField, fechaEvaluacionField,
+            limpiar(reclutaCombo, divisionEspecialCombo, aptoServicioField, fechaEvaluacionField,
                     puntajeField);
             grid.asSingleSelect().clear();
         });
 
-        layout.add(form, crearAcciones(btnCrear, btnConsultar, btnActualizar, btnEliminar, btnLimpiar), grid);
+        layout.add(form, crearAcciones(btnCrear, btnActualizar, btnEliminar, btnLimpiar), grid);
         return layout;
     }
 
@@ -608,7 +596,6 @@ public class MainView extends VerticalLayout {
         });
 
         Grid<Recluta> gridReclutas = new Grid<>(Recluta.class, false);
-        gridReclutas.addColumn(Recluta::getIdRecluta).setHeader("ID").setAutoWidth(true);
         gridReclutas.addColumn(Recluta::getNombre).setHeader("Nombre").setAutoWidth(true);
         gridReclutas.addColumn(Recluta::getApellido).setHeader("Apellido").setAutoWidth(true);
         gridReclutas.addColumn(Recluta::getAltura).setHeader("Altura").setAutoWidth(true);
@@ -655,7 +642,6 @@ public class MainView extends VerticalLayout {
         ComboBox<Division> divisionDetalleCombo = crearCombo("División", Division.class, this::etiquetaDivision);
 
         Grid<AptoDivisionEspecial> gridAdscripciones = new Grid<>(AptoDivisionEspecial.class, false);
-        gridAdscripciones.addColumn(AptoDivisionEspecial::getIdApto).setHeader("ID").setAutoWidth(true);
         gridAdscripciones.addColumn(a -> a.getIdRecluta() != null ? nombreCompleto(a.getIdRecluta()) : "")
                 .setHeader("Recluta").setAutoWidth(true);
         gridAdscripciones.addColumn(a -> a.getIdRecluta() != null && a.getIdRecluta().getIdRama() != null
@@ -730,27 +716,6 @@ public class MainView extends VerticalLayout {
         comboRefrescos.forEach(SerializableRunnable::run);
     }
 
-    private <T> T buscar(Class<T> clase, TextField idField) {
-        Integer id = parseId(idField);
-        if (id == null) {
-            Notification.show("Ingrese un ID válido");
-            return null;
-        }
-        T entidad = crudService.buscarPorId(clase, id);
-        if (entidad == null) {
-            Notification.show("No encontrado");
-        }
-        return entidad;
-    }
-
-    private Integer parseId(TextField field) {
-        try {
-            return Integer.parseInt(field.getValue().trim());
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
     private boolean vacio(String valor) {
         return valor == null || valor.isBlank();
     }
@@ -802,4 +767,4 @@ public class MainView extends VerticalLayout {
         layout.getStyle().set("flex-wrap", "wrap");
         return layout;
     }
-}
+}   
