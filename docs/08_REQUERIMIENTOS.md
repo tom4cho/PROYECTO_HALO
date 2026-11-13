@@ -223,6 +223,39 @@ mediante notificaciones.
 El sistema debe notificar el resultado de cada operación (éxito, registro no encontrado o
 error de validación) y limpiar el formulario cuando corresponda.
 
+## RF-12 Consistencia de rama en asignaciones a divisiones especiales
+El sistema debe impedir que se cree o actualice un registro de `AptoDivisionEspecial`
+cuando el recluta seleccionado no pertenece a la misma rama que la división a la que
+pertenece la división especial seleccionada, y debe informar el motivo mediante una
+notificación en español. La validación se aplica tanto en el alta como en la actualización
+y se ejecuta antes de guardar, de modo que no se persiste ningún cambio cuando la regla no
+se cumple. La regla no se aplica retroactivamente a los registros existentes: no se migran
+ni se corrigen, y solo se validan los registros que se creen o modifiquen a partir de su
+implementación.
+
+Trazabilidad:
+
+- **Extiende RF-10** (integridad y validación básica): añade una validación de
+  consistencia entre entidades relacionadas que RF-10 no cubre.
+- **Complementa RF-05** (gestión de asignaciones a divisiones especiales): restringe qué
+  combinaciones de recluta y división especial son admisibles.
+- **Usa RF-11** (retroalimentación al usuario) como canal para informar el rechazo.
+- Se detalla en `SPECS.md` (REQ-001 a REQ-010 y RN-01 a RN-10).
+
+> **Notas de implementación (opcional).**
+>
+> - La validación se ejecuta en `CrudService` dentro de la transacción (`@Transactional`):
+>   se recargan el recluta y la división especial por ID antes de `persist`/`merge` y, si
+>   la regla no se cumple, no se escribe ninguna fila.
+> - La comparación de ramas se hace de forma null-safe sobre `idRama` (`Integer`), no por
+>   referencia ni por `equals` de entidad.
+> - Mensaje de rechazo exacto: «El recluta debe pertenecer a la misma rama que la división
+>   de la división especial seleccionada.».
+> - No es retroactiva: los registros existentes no se migran, corrigen ni bloquean.
+> - Sin cambios de esquema, entidades, relaciones JPA ni `Bean Validation`; la validación
+>   es manual, como el resto del proyecto (LT-06), y no se altera el comportamiento
+>   genérico de `guardar`/`actualizar`.
+
 ---
 
 # 5. REGLAS DE NEGOCIO PENDIENTES DE DEFINIR
@@ -236,3 +269,9 @@ implementación:
 - Política de borrado (físico o lógico) y reasignación de reclutas al eliminar una rama o
   una división especial.
 - Necesidad real de autenticación, roles y permisos sobre el sistema.
+
+> **Nota:** la consistencia de rama en las asignaciones a divisiones especiales ya está
+> definida en **RF-12** y no forma parte de estas reglas pendientes. Queda sin definir el
+> caso de un registro ya existente cuya coherencia se rompe después, al cambiar la rama de
+> un recluta o la división de una división especial; RF-12 no es retroactiva y no bloquea
+> esa situación.
