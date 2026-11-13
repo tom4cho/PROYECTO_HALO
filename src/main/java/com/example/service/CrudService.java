@@ -1,9 +1,13 @@
 package com.example.service;
 
 import java.io.Serializable;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 
 import com.example.model.AptoDivisionEspecial;
+import com.example.model.DivisionEspecial;
+import com.example.model.Rama;
 import com.example.model.Recluta;
 
 import jakarta.persistence.EntityManager;
@@ -64,6 +68,65 @@ public class CrudService {
             return true;
         }
         return false;
+    }
+
+    // ==========================================
+    // Altas de aptos (consistencia de rama)
+    // ==========================================
+
+    /**
+     * Crear / Dar de alta un apto de división especial, validando la consistencia
+     * de rama antes de persistir dentro de la misma transacción.
+     */
+    @Transactional
+    public AptoDivisionEspecial crearApto(Integer idRecluta, Integer idDivisionEspecial, Boolean aptoServicio,
+            LocalDate fechaEvaluacion, Integer puntaje) {
+        Recluta recluta = entityManager.find(Recluta.class, idRecluta);
+        DivisionEspecial divisionEspecial = entityManager.find(DivisionEspecial.class, idDivisionEspecial);
+        if (recluta == null || divisionEspecial == null) {
+            throw new ReglaRamaException("No encontrado");
+        }
+        Rama ramaRecluta = recluta.getIdRama();
+        Rama ramaDivision = divisionEspecial.getIdDivision().getIdRama();
+        if (!Objects.equals(ramaRecluta.getIdRama(), ramaDivision.getIdRama())) {
+            throw new ReglaRamaException(
+                    "El recluta debe pertenecer a la misma rama que la división de la división especial seleccionada.");
+        }
+        AptoDivisionEspecial apto = new AptoDivisionEspecial(recluta, divisionEspecial, aptoServicio,
+                fechaEvaluacion, puntaje);
+        entityManager.persist(apto);
+        return apto;
+    }
+
+    // ==========================================
+    // Actualizaciones de aptos (consistencia de rama)
+    // ==========================================
+
+    /**
+     * Actualizar / Editar un apto de división especial, validando la consistencia
+     * de rama antes de merge dentro de la misma transacción.
+     */
+    @Transactional
+    public AptoDivisionEspecial actualizarApto(Integer idApto, Integer idRecluta, Integer idDivisionEspecial,
+            Boolean aptoServicio, LocalDate fechaEvaluacion, Integer puntaje) {
+        AptoDivisionEspecial apto = entityManager.find(AptoDivisionEspecial.class, idApto);
+        Recluta recluta = entityManager.find(Recluta.class, idRecluta);
+        DivisionEspecial divisionEspecial = entityManager.find(DivisionEspecial.class, idDivisionEspecial);
+        if (apto == null || recluta == null || divisionEspecial == null) {
+            throw new ReglaRamaException("No encontrado");
+        }
+        Rama ramaRecluta = recluta.getIdRama();
+        Rama ramaDivision = divisionEspecial.getIdDivision().getIdRama();
+        if (!Objects.equals(ramaRecluta.getIdRama(), ramaDivision.getIdRama())) {
+            throw new ReglaRamaException(
+                    "El recluta debe pertenecer a la misma rama que la división de la división especial seleccionada.");
+        }
+        apto.setIdRecluta(recluta);
+        apto.setIdDivisionEspecial(divisionEspecial);
+        apto.setAptoServicio(aptoServicio);
+        apto.setFechaEvaluacion(fechaEvaluacion);
+        apto.setPuntaje(puntaje);
+        return entityManager.merge(apto);
     }
 
     // ==========================================
