@@ -99,6 +99,37 @@ public class CrudService {
     }
 
     // ==========================================
+    // Actualizaciones de aptos (consistencia de rama)
+    // ==========================================
+
+    /**
+     * Actualizar / Editar un apto de división especial, validando la consistencia
+     * de rama antes de merge dentro de la misma transacción.
+     */
+    @Transactional
+    public AptoDivisionEspecial actualizarApto(Integer idApto, Integer idRecluta, Integer idDivisionEspecial,
+            Boolean aptoServicio, LocalDate fechaEvaluacion, Integer puntaje) {
+        AptoDivisionEspecial apto = entityManager.find(AptoDivisionEspecial.class, idApto);
+        Recluta recluta = entityManager.find(Recluta.class, idRecluta);
+        DivisionEspecial divisionEspecial = entityManager.find(DivisionEspecial.class, idDivisionEspecial);
+        if (apto == null || recluta == null || divisionEspecial == null) {
+            throw new ReglaRamaException("No encontrado");
+        }
+        Rama ramaRecluta = recluta.getIdRama();
+        Rama ramaDivision = divisionEspecial.getIdDivision().getIdRama();
+        if (!Objects.equals(ramaRecluta.getIdRama(), ramaDivision.getIdRama())) {
+            throw new ReglaRamaException(
+                    "El recluta debe pertenecer a la misma rama que la división de la división especial seleccionada.");
+        }
+        apto.setIdRecluta(recluta);
+        apto.setIdDivisionEspecial(divisionEspecial);
+        apto.setAptoServicio(aptoServicio);
+        apto.setFechaEvaluacion(fechaEvaluacion);
+        apto.setPuntaje(puntaje);
+        return entityManager.merge(apto);
+    }
+
+    // ==========================================
     // Consultas de soldados adscritos
     // ==========================================
 
